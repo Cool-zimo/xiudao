@@ -110,6 +110,12 @@ const UI = {
         document.getElementById('btn-cloud-save')?.addEventListener('click', () => {
             this.openCloudSave();
         });
+        document.getElementById('btn-achievements')?.addEventListener('click', () => {
+            this.showAchievements();
+        });
+        document.getElementById('btn-close-achievements')?.addEventListener('click', () => {
+            this.hideModal('achievements-dialog');
+        });
         document.getElementById('btn-verify-token')?.addEventListener('click', () => {
             this.verifyCloudToken();
         });
@@ -1261,5 +1267,6 @@ document.addEventListener('DOMContentLoaded', () => {
 // 导出UI对象
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = UI;
+
 
 }

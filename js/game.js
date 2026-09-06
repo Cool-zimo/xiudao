@@ -5,7 +5,7 @@
 
 const Game = {
     // 游戏版本
-    version: '1.0.0',
+    version: Version.displayVersion,
     
     // 游戏状态
     state: {
@@ -45,7 +45,8 @@ const Game = {
      * 初始化游戏
      */
     init() {
-        console.log('🌿 网页修仙模拟器 v' + this.version);
+        Achievements.initPlayer(this.player);
+        console.log('🌿 网页修仙模拟器 ' + this.version + ' (内部版本 ' + Version.internalVersion + ')');
         this.loadAutoSave();
         this.startPlayTimeCounter();
     },
@@ -303,6 +304,11 @@ const Game = {
      * 自动保存
      */
     autoSave() {
+        // 检查成就
+        try {
+            const newAchievements = Achievements.checkAchievements(this.player);
+            newAchievements.forEach(a => UI.showAchievementNotification(a));
+        } catch(e) {}
         if (!this.player) return;
         
         this.player.metadata.lastSaveTime = new Date().toISOString();
