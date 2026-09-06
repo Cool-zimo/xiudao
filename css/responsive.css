@@ -1,0 +1,319 @@
+/* ==========================================
+   🌿 网页修仙模拟器 - 响应式适配
+   移动端友好设计
+   ========================================== */
+
+/* ---------- 平板设备 (768px - 1024px) ---------- */
+@media (max-width: 1024px) {
+    .game-content {
+        flex-direction: column;
+    }
+    
+    .sidebar {
+        width: 100%;
+        flex-direction: row;
+        flex-wrap: wrap;
+    }
+    
+    .panel {
+        flex: 1;
+        min-width: 200px;
+    }
+    
+    .action-panel {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+/* ---------- 手机设备 (< 768px) ---------- */
+@media (max-width: 768px) {
+    /* 全局调整 */
+    .container {
+        padding: 15px;
+    }
+    
+    .game-title {
+        font-size: 2em;
+    }
+    
+    .game-subtitle {
+        font-size: 1em;
+    }
+    
+    /* 首页按钮 */
+    .menu-buttons {
+        max-width: 100%;
+    }
+    
+    .btn {
+        padding: 10px 20px;
+        font-size: 1em;
+    }
+    
+    /* 角色创建界面 */
+    .radio-group {
+        flex-direction: column;
+    }
+    
+    .faction-option {
+        width: 100%;
+    }
+    
+    .card-group {
+        grid-template-columns: 1fr;
+    }
+    
+    /* 游戏主界面 */
+    .game-header {
+        flex-direction: column;
+        gap: 10px;
+        padding: 10px;
+    }
+    
+    .player-info {
+        flex-direction: column;
+        gap: 5px;
+        font-size: 0.9em;
+    }
+    
+    .header-actions {
+        width: 100%;
+        justify-content: center;
+    }
+    
+    .game-content {
+        padding: 10px;
+        gap: 10px;
+    }
+    
+    .sidebar {
+        width: 100%;
+        order: 2;
+    }
+    
+    .main-area {
+        order: 1;
+    }
+    
+    .right-sidebar {
+        display: none; /* 手机端隐藏右侧边栏 */
+    }
+    
+    /* 操作按钮改为单列 */
+    .action-panel {
+        grid-template-columns: 1fr;
+    }
+    
+    .btn-action {
+        padding: 20px 15px;
+        flex-direction: row;
+        justify-content: flex-start;
+    }
+    
+    .action-icon {
+        font-size: 2em;
+    }
+    
+    .action-text {
+        font-size: 1.1em;
+    }
+    
+    /* 日志区域 */
+    .log-content {
+        max-height: 200px;
+    }
+    
+    /* 战斗界面 */
+    .battle-field {
+        flex-direction: column;
+        gap: 20px;
+        padding: 20px;
+    }
+    
+    .vs-divider {
+        font-size: 1.5em;
+    }
+    
+    .combatant {
+        width: 100%;
+    }
+    
+    .combat-actions {
+        flex-direction: column;
+    }
+    
+    .combat-actions .btn {
+        width: 100%;
+    }
+    
+    /* 背包界面 */
+    .inventory-grid {
+        grid-template-columns: repeat(4, 1fr);
+    }
+    
+    /* 模态对话框 */
+    .modal-content {
+        width: 95%;
+        padding: 20px;
+    }
+    
+    .action-buttons {
+        flex-direction: column;
+    }
+    
+    .action-buttons .btn {
+        width: 100%;
+    }
+    
+    /* 帮助界面 */
+    .help-content {
+        padding: 20px;
+    }
+    
+    .help-content h3 {
+        font-size: 1.3em;
+    }
+    
+    .help-content h4 {
+        font-size: 1.1em;
+    }
+}
+
+/* ---------- 小屏手机 (< 480px) ---------- */
+@media (max-width: 480px) {
+    .game-title {
+        font-size: 1.6em;
+    }
+    
+    .game-subtitle {
+        font-size: 0.9em;
+    }
+    
+    .container {
+        padding: 10px;
+    }
+    
+    .panel {
+        padding: 10px;
+    }
+    
+    .panel h3 {
+        font-size: 1em;
+    }
+    
+    .attribute-list {
+        font-size: 0.9em;
+    }
+    
+    .log-content {
+        font-size: 0.85em;
+        max-height: 150px;
+    }
+    
+    .inventory-grid {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}
+
+/* ---------- 横屏优化 ---------- */
+@media (max-height: 500px) and (orientation: landscape) {
+    .game-header {
+        padding: 8px 15px;
+    }
+    
+    .player-info {
+        font-size: 0.85em;
+    }
+    
+    .game-content {
+        padding: 10px;
+    }
+    
+    .log-content {
+        max-height: 120px;
+    }
+}
+
+/* ---------- 触摸设备优化 ---------- */
+@media (hover: none) and (pointer: coarse) {
+    /* 增大可点击区域 */
+    .btn {
+        min-height: 44px;
+        min-width: 44px;
+    }
+    
+    .btn-action {
+        min-height: 60px;
+    }
+    
+    .card {
+        min-height: 80px;
+    }
+    
+    .inventory-slot {
+        min-width: 60px;
+        min-height: 60px;
+    }
+    
+    /* 移除悬停效果，改用点击反馈 */
+    .btn:hover,
+    .card:hover,
+    .btn-action:hover {
+        transform: none;
+    }
+    
+    .btn:active,
+    .card:active,
+    .btn-action:active {
+        transform: scale(0.98);
+    }
+}
+
+/* ---------- 打印样式 ---------- */
+@media print {
+    body {
+        background: white;
+        color: black;
+    }
+    
+    .screen {
+        display: none !important;
+    }
+    
+    #home-screen {
+        display: block !important;
+    }
+    
+    .btn,
+    .action-buttons,
+    .header-actions {
+        display: none;
+    }
+}
+
+/* ---------- 高对比度模式 ---------- */
+@media (prefers-contrast: high) {
+    :root {
+        --border-color: #000;
+        --text-color: #000;
+    }
+    
+    .btn {
+        border: 3px solid #000;
+    }
+    
+    .card {
+        border: 3px solid #000;
+    }
+}
+
+/* ---------- 减少动画偏好 ---------- */
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+}

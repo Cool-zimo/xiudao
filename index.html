@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🌿 网页修仙模拟器</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/theme.css">
+    <link rel="stylesheet" href="css/responsive.css">
+</head>
+<body>
+    <!-- 首页 -->
+    <div id="home-screen" class="screen active">
+        <div class="container">
+            <h1 class="game-title">🌿 网页修仙模拟器</h1>
+            <p class="game-subtitle">零成本 · 纯前端 · 单机可玩 · 支持道友交换</p>
+            
+            <div class="menu-buttons">
+                <button id="btn-new-game" class="btn btn-primary">开始修行</button>
+                <button id="btn-continue" class="btn btn-secondary">继续修行</button>
+                <button id="btn-import" class="btn btn-secondary">导入存档</button>
+                <button id="btn-help" class="btn btn-secondary">游戏说明</button>
+            </div>
+            
+            <div class="footer-info">
+                <p>真正的修仙者，从不依赖服务器</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- 角色创建界面 -->
+    <div id="character-creation" class="screen">
+        <div class="container">
+            <h2>创建角色</h2>
+            
+            <div class="form-group">
+                <label for="player-name">道号：</label>
+                <input type="text" id="player-name" placeholder="请输入你的道号" maxlength="12">
+            </div>
+            
+            <div class="form-group">
+                <label>阵营选择：</label>
+                <div class="radio-group">
+                    <label class="faction-option">
+                        <input type="radio" name="faction" value="正道" checked>
+                        <span class="faction-badge righteous">正道</span>
+                        <small>修行平稳，可结婴</small>
+                    </label>
+                    <label class="faction-option">
+                        <input type="radio" name="faction" value="邪修">
+                        <span class="faction-badge evil">邪修</span>
+                        <small>杀怪得魂魄，可夺舍</small>
+                    </label>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label>职业选择：</label>
+                <div class="card-group">
+                    <div class="card profession-card" data-profession="锻造师">
+                        <h3>🔧 锻造师</h3>
+                        <p>炼器炼丹，提高成功率</p>
+                        <p class="profession-desc">可在锻造台中管理控云法术</p>
+                    </div>
+                    <div class="card profession-card" data-profession="召唤师">
+                        <h3>📦 召唤师</h3>
+                        <p>契约灵兽，后台挂机刷怪</p>
+                        <p class="profession-desc warning">⚠️ 灵兽过强有反噬风险</p>
+                    </div>
+                    <div class="card profession-card" data-profession="暗器师">
+                        <h3>🗡️ 暗器师</h3>
+                        <p>打造暗器，高爆发伤害</p>
+                        <p class="profession-desc">需要锻造师提供材料</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label>天赋选择：</label>
+                <div class="card-group">
+                    <div class="card talent-card" data-talent="运气">
+                        <h4>🍀 运气</h4>
+                        <p>掉落率提升，奇遇概率增加</p>
+                    </div>
+                    <div class="card talent-card" data-talent="肉盾">
+                        <h4>🛡️ 肉盾</h4>
+                        <p>血量上限提升，防御增强</p>
+                    </div>
+                    <div class="card talent-card" data-talent="远攻">
+                        <h4>🏹 远攻</h4>
+                        <p>远程攻击伤害提升</p>
+                    </div>
+                    <div class="card talent-card" data-talent="控云">
+                        <h4>⛅ 控云</h4>
+                        <p>掌控风雨雷电，元素伤害</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="action-buttons">
+                <button id="btn-create-character" class="btn btn-primary">开始修行</button>
+                <button id="btn-back-home" class="btn btn-secondary">返回</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 主游戏界面 -->
+    <div id="main-game" class="screen">
+        <div class="game-layout">
+            <!-- 顶部信息栏 -->
+            <header class="game-header">
+                <div class="player-info">
+                    <span id="player-name-display">--</span>
+                    <span id="player-realm-display">练气期 Lv1</span>
+                    <span id="player-faction-display">正道</span>
+                </div>
+                <div class="header-actions">
+                    <button id="btn-save" class="btn-small">保存</button>
+                    <button id="btn-export" class="btn-small">导出</button>
+                    <button id="btn-menu" class="btn-small">菜单</button>
+                </div>
+            </header>
+
+            <!-- 主内容区 -->
+            <main class="game-content">
+                <!-- 左侧：角色状态 -->
+                <aside class="sidebar left-sidebar">
+                    <div class="panel">
+                        <h3>修为</h3>
+                        <div class="progress-bar">
+                            <div id="exp-bar" class="progress-fill" style="width: 0%"></div>
+                        </div>
+                        <p id="exp-text">0 / 100</p>
+                    </div>
+                    
+                    <div class="panel">
+                        <h3>属性</h3>
+                        <div class="attribute-list">
+                            <div class="attr-item">
+                                <span>❤️ 生命</span>
+                                <span id="hp-text">100/100</span>
+                            </div>
+                            <div class="attr-item">
+                                <span>💧 法力</span>
+                                <span id="mp-text">50/50</span>
+                            </div>
+                            <div class="attr-item">
+                                <span>⚔️ 攻击</span>
+                                <span id="attack-text">10</span>
+                            </div>
+                            <div class="attr-item">
+                                <span>🛡️ 防御</span>
+                                <span id="defense-text">5</span>
+                            </div>
+                        </div>
+                    </div>
+                </aside>
+
+                <!-- 中间：主要操作区 -->
+                <section class="main-area">
+                    <div class="action-panel">
+                        <button id="btn-cultivate" class="btn-action btn-cultivate">
+                            <span class="action-icon">🧘</span>
+                            <span class="action-text">修炼</span>
+                        </button>
+                        <button id="btn-combat" class="btn-action btn-combat">
+                            <span class="action-icon">⚔️</span>
+                            <span class="action-text">战斗</span>
+                        </button>
+                        <button id="btn-tribulation" class="btn-action btn-tribulation" style="display: none;">
+                            <span class="action-icon">⚡</span>
+                            <span class="action-text">渡劫</span>
+                        </button>
+                        <button id="btn-forge" class="btn-action btn-forge">
+                            <span class="action-icon">🔥</span>
+                            <span class="action-text">锻造</span>
+                        </button>
+                        <button id="btn-inventory" class="btn-action btn-inventory">
+                            <span class="action-icon">🎒</span>
+                            <span class="action-text">背包</span>
+                        </button>
+                    </div>
+                    
+                    <!-- 境界提示 -->
+                    <div id="realm-hint" class="realm-hint" style="display: none;">
+                        <p></p>
+                    </div>
+                    
+                    <!-- 日志区域 -->
+                    <div class="log-panel">
+                        <h3>修炼日志</h3>
+                        <div id="game-log" class="log-content">
+                            <p class="log-entry">欢迎来到修仙世界...</p>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 右侧：快捷信息 -->
+                <aside class="sidebar right-sidebar">
+                    <div class="panel">
+                        <h3>职业</h3>
+                        <p id="profession-display">--</p>
+                    </div>
+                    
+                    <div class="panel">
+                        <h3>天赋</h3>
+                        <p id="talent-display">--</p>
+                    </div>
+                    
+                    <!-- 邪修专属面板 -->
+                    <div id="evil-panel" class="panel evil-panel" style="display: none;">
+                        <h3>☠️ 邪修状态</h3>
+                        <div class="evil-stats">
+                            <p>魂魄：<span id="souls-display">0</span></p>
+                            <div id="second-personality-info" style="display: none;">
+                                <p>第二人格：<span id="sp-name">魔心</span></p>
+                                <p>融合进度：<span id="sp-fusion">0%</span></p>
+                                <p>融合风险：<span id="sp-risk">20%</span></p>
+                            </div>
+                        </div>
+                        <button id="btn-devour" class="btn-small btn-evil">吞噬魂魄</button>
+                        <button id="btn-second-personality" class="btn-small btn-evil" style="display: none;">开启第二人格</button>
+                        <button id="btn-fuse" class="btn-small btn-evil" style="display: none;">融合人格</button>
+                    </div>
+                    
+                    <div class="panel">
+                        <h3>游戏时间</h3>
+                        <p id="playtime-display">0分钟</p>
+                    </div>
+                </aside>
+            </main>
+        </div>
+    </div>
+
+    <!-- 战斗界面 -->
+    <div id="combat-screen" class="screen">
+        <div class="container combat-container">
+            <h2>战斗</h2>
+            
+            <div class="battle-field">
+                <div class="combatant player-side">
+                    <h3 id="combat-player-name">玩家</h3>
+                    <div class="hp-bar">
+                        <div id="combat-player-hp-bar" class="hp-fill" style="width: 100%"></div>
+                    </div>
+                    <p id="combat-player-hp">100/100</p>
+                </div>
+                
+                <div class="vs-divider">VS</div>
+                
+                <div class="combatant enemy-side">
+                    <h3 id="combat-enemy-name">怪物</h3>
+                    <div class="hp-bar">
+                        <div id="combat-enemy-hp-bar" class="hp-fill" style="width: 100%"></div>
+                    </div>
+                    <p id="combat-enemy-hp">50/50</p>
+                </div>
+            </div>
+            
+            <div class="combat-log">
+                <div id="combat-log-content" class="log-content">
+                    <p class="log-entry">战斗开始！</p>
+                </div>
+            </div>
+            
+            <div class="combat-actions">
+                <button id="btn-attack" class="btn btn-primary">攻击</button>
+                <button id="btn-skill" class="btn btn-secondary">技能</button>
+                <button id="btn-possession" class="btn btn-evil" style="display: none;">夺舍</button>
+                <button id="btn-flee" class="btn btn-danger">逃跑</button>
+            </div>
+            
+            <!-- 技能选择面板（隐藏） -->
+            <div id="skill-panel" class="skill-panel" style="display: none;">
+                <h3>选择技能</h3>
+                <div id="skill-list" class="skill-list">
+                    <!-- 动态生成技能按钮 -->
+                </div>
+                <button id="btn-close-skill" class="btn btn-small">取消</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 渡劫界面 -->
+    <div id="tribulation-screen" class="screen">
+        <div class="container tribulation-container">
+            <h2>⚡ 天劫降临</h2>
+            
+            <div class="tribulation-info">
+                <p class="warning-text">⚠️ 渡劫有风险，失败将损失修为！</p>
+                <div class="tribulation-stats">
+                    <p>当前境界：<span id="tribulation-realm">筑基期 Lv10</span></p>
+                    <p>下一境界：<span id="next-realm">结丹期</span></p>
+                    <p>成功率：<span id="tribulation-chance">60%</span></p>
+                </div>
+            </div>
+            
+            <div class="tribulation-effects">
+                <h3>渡劫结果</h3>
+                <div class="effect-list">
+                    <div class="effect-item success">
+                        <strong>✅ 成功：</strong>晋升结丹期，属性大幅提升
+                    </div>
+                    <div class="effect-item failure">
+                        <strong>❌ 失败：</strong>损失30%修为，HP降至1点
+                    </div>
+                </div>
+            </div>
+            
+            <div class="action-buttons">
+                <button id="btn-start-tribulation" class="btn btn-primary">开始渡劫</button>
+                <button id="btn-cancel-tribulation" class="btn btn-secondary">取消</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 夺舍界面 -->
+    <div id="possession-screen" class="screen">
+        <div class="container possession-container">
+            <h2>☠️ 灵魂夺舍</h2>
+            
+            <div class="possession-info">
+                <p class="warning-text">⚠️ 夺舍极险，失败将修为大跌！</p>
+                <div class="possession-target">
+                    <p>目标：<span id="possession-target">未知怪物</span></p>
+                    <p>成功率：<span id="possession-chance">50%</span></p>
+                    <p>冷却时间：<span id="possession-cooldown">无</span></p>
+                </div>
+                
+                <!-- 夺舍预览 -->
+                <div id="possession-preview" class="possession-preview">
+                    <h4>属性预览</h4>
+                    <div class="preview-comparison">
+                        <div class="preview-current">
+                            <strong>当前属性</strong>
+                            <p>攻击: <span id="preview-current-attack">--</span></p>
+                            <p>防御: <span id="preview-current-defense">--</span></p>
+                            <p>生命: <span id="preview-current-hp">--</span></p>
+                        </div>
+                        <div class="preview-arrow">→</div>
+                        <div class="preview-predicted">
+                            <strong>预期属性</strong>
+                            <p>攻击: <span id="preview-predicted-attack">--</span></p>
+                            <p>防御: <span id="preview-predicted-defense">--</span></p>
+                            <p>生命: <span id="preview-predicted-hp">--</span></p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="possession-effects">
+                <h3>夺舍结果</h3>
+                <div class="effect-list">
+                    <div class="effect-item success">
+                        <strong>✅ 成功：</strong>获得新肉体，保留50%原属性+新肉体属性
+                    </div>
+                    <div class="effect-item failure">
+                        <strong>❌ 失败：</strong>损失50%修为，HP降至1点
+                    </div>
+                </div>
+            </div>
+            
+            <div class="action-buttons">
+                <button id="btn-start-possession" class="btn btn-primary btn-evil">开始夺舍</button>
+                <button id="btn-cancel-possession" class="btn btn-secondary">取消</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 背包界面 -->
+    <div id="inventory-screen" class="screen">
+        <div class="container">
+            <h2>背包</h2>
+            
+            <div id="inventory-grid" class="inventory-grid">
+                <!-- 物品格子动态生成 -->
+            </div>
+            
+            <div class="action-buttons">
+                <button id="btn-close-inventory" class="btn btn-secondary">关闭</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 导入存档对话框 -->
+    <div id="import-dialog" class="modal">
+        <div class="modal-content">
+            <h3>导入存档</h3>
+            <textarea id="import-token" placeholder="请粘贴存档口令..."></textarea>
+            <div class="form-group">
+                <label for="import-password">密码（如果有）：</label>
+                <input type="password" id="import-password" placeholder="留空表示无密码">
+            </div>
+            <div class="action-buttons">
+                <button id="btn-confirm-import" class="btn btn-primary">确认导入</button>
+                <button id="btn-cancel-import" class="btn btn-secondary">取消</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 导出存档对话框 -->
+    <div id="export-dialog" class="modal">
+        <div class="modal-content">
+            <h3>导出存档</h3>
+            <div class="form-group">
+                <label for="export-password">设置密码（可选）：</label>
+                <input type="password" id="export-password" placeholder="留空表示不设密码">
+            </div>
+            <textarea id="export-token" readonly placeholder="生成的存档口令将显示在这里..."></textarea>
+            <div class="action-buttons">
+                <button id="btn-copy-token" class="btn btn-primary">复制口令</button>
+                <button id="btn-close-export" class="btn btn-secondary">关闭</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 帮助界面 -->
+    <div id="help-screen" class="screen">
+        <div class="container">
+            <h2>游戏说明</h2>
+            <div class="help-content">
+                <h3>🌿 网页修仙模拟器</h3>
+                <p>这是一款完全运行在浏览器中的文字修仙模拟器。</p>
+                
+                <h4>核心特色</h4>
+                <ul>
+                    <li>✅ 无需服务器、无需注册、无需联网</li>
+                    <li>✅ 本地存档，关闭网页不丢失</li>
+                    <li>✅ 支持口令存档，可与道友交换修为</li>
+                    <li>✅ 多职业、多阵营、多天赋系统</li>
+                </ul>
+                
+                <h4>境界体系</h4>
+                <p>练气期 → 筑基期 → 结丹期 → 金丹期 → 元婴期 → 筠仙期</p>
+                
+                <h4>职业介绍</h4>
+                <ul>
+                    <li><strong>锻造师</strong>：炼器炼丹，提高成功率</li>
+                    <li><strong>召唤师</strong>：契约灵兽，后台挂机刷怪</li>
+                    <li><strong>暗器师</strong>：打造暗器，高爆发伤害</li>
+                </ul>
+                
+                <h4>存档说明</h4>
+                <p>使用Base64编码 + SHA256校验，支持密码保护。</p>
+                <p>无密码时仅可预览基本信息，防止恶意篡改。</p>
+            </div>
+            <div class="action-buttons">
+                <button id="btn-close-help" class="btn btn-secondary">返回</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- JavaScript文件 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+    <script src="js/utils.js"></script>
+    <script src="js/game.js"></script>
+    <script src="js/character.js"></script>
+    <script src="js/cultivation.js"></script>
+    <script src="js/combat.js"></script>
+    <script src="js/inventory.js"></script>
+    <script src="js/save_load.js"></script>
+    <script src="js/evil_cultivation.js"></script>
+    <script src="js/ui.js"></script>
+    <script src="js/main.js"></script>
+</body>
+</html>

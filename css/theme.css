@@ -1,0 +1,212 @@
+/* ==========================================
+   🌿 网页修仙模拟器 - 主题样式文件
+   正道/邪修双主题切换
+   ========================================== */
+
+/* ---------- 正道主题（默认） ---------- */
+:root {
+    --theme-primary: #2c5f7d;
+    --theme-primary-light: #4a90b8;
+    --theme-primary-dark: #1a3a4d;
+    --theme-accent: #d4af37;
+    --theme-bg-gradient: linear-gradient(135deg, #f5f5dc 0%, #e8e8d0 100%);
+    --theme-panel-bg: #fffef5;
+    --theme-text-primary: #2c3e50;
+    --theme-border: #d4c5a3;
+}
+
+body.theme-righteous {
+    --primary-color: var(--theme-primary);
+    --primary-light: var(--theme-primary-light);
+    --primary-dark: var(--theme-primary-dark);
+    --accent-color: var(--theme-accent);
+    --bg-color: #f5f5dc;
+    --bg-dark: #e8e8d0;
+    --panel-bg: var(--theme-panel-bg);
+    --text-color: var(--theme-text-primary);
+    --border-color: var(--theme-border);
+}
+
+/* ---------- 邪修主题 ---------- */
+body.theme-evil {
+    --primary-color: #6c3483;
+    --primary-light: #8e44ad;
+    --primary-dark: #4a235a;
+    --accent-color: #c0392b;
+    --bg-color: #1a1a2e;
+    --bg-dark: #16213e;
+    --panel-bg: #0f3460;
+    --text-color: #e0e0e0;
+    --text-light: #a0a0a0;
+    --border-color: #533483;
+    --shadow: 0 2px 8px rgba(108, 52, 131, 0.3);
+    --shadow-lg: 0 4px 16px rgba(108, 52, 131, 0.4);
+}
+
+/* 邪修主题特殊效果 */
+body.theme-evil .game-title {
+    text-shadow: 0 0 10px rgba(142, 68, 173, 0.5), 2px 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+body.theme-evil .btn-primary {
+    background: linear-gradient(135deg, #6c3483, #8e44ad);
+    box-shadow: 0 0 15px rgba(142, 68, 173, 0.4);
+}
+
+body.theme-evil .btn-primary:hover {
+    background: linear-gradient(135deg, #4a235a, #6c3483);
+    box-shadow: 0 0 20px rgba(142, 68, 173, 0.6);
+}
+
+body.theme-evil .card.selected {
+    border-color: #c0392b;
+    background: linear-gradient(135deg, #2d1b3d, #1a0f2e);
+}
+
+body.theme-evil .progress-fill {
+    background: linear-gradient(90deg, #8e44ad, #6c3483);
+    box-shadow: 0 0 10px rgba(142, 68, 173, 0.5);
+}
+
+body.theme-evil .hp-fill {
+    background: linear-gradient(90deg, #c0392b, #962d22);
+    box-shadow: 0 0 8px rgba(192, 57, 43, 0.6);
+}
+
+body.theme-evil .log-entry {
+    border-left-color: #8e44ad;
+}
+
+body.theme-evil .faction-badge.righteous {
+    background: linear-gradient(135deg, #2c5f7d, #1a3a4d);
+}
+
+body.theme-evil .faction-badge.evil {
+    background: linear-gradient(135deg, #c0392b, #962d22);
+    box-shadow: 0 0 10px rgba(192, 57, 43, 0.5);
+}
+
+/* ---------- 境界特效颜色 ---------- */
+.realm-qilian { color: #3498db; }      /* 练气期 - 蓝色 */
+.realm-zhuji { color: #2ecc71; }      /* 筑基期 - 绿色 */
+.realm-jiedan { color: #f39c12; }     /* 结丹期 - 橙色 */
+.realm-jindan { color: #e74c3c; }     /* 金丹期 - 红色 */
+.realm-yuanying { color: #9b59b6; }   /* 元婴期 - 紫色 */
+.realm-junxian { color: #f1c40f; }    /* 筠仙期 - 金色 */
+
+/* ---------- 品质颜色 ---------- */
+.quality-fanpin { color: #95a5a6; }        /* 凡品 - 灰色 */
+.quality-xiapin { color: #3498db; }        /* 下品 - 蓝色 */
+.quality-zhongpin { color: #2ecc71; }      /* 中品 - 绿色 */
+.quality-shangpin { color: #f39c12; }      /* 上品 - 橙色 */
+.quality-jipin { color: #e74c3c; }         /* 极品 - 红色 */
+.quality-faqi { color: #9b59b6; }          /* 法器 - 紫色 */
+.quality-baoqi { color: #1abc9c; }         /* 宝器 - 青色 */
+.quality-lingqi { color: #e67e22; }        /* 灵器 - 深橙 */
+.quality-xianqi { color: #f1c40f; }        /* 仙器 - 金色 */
+.quality-shenqi { color: #e74c3c; text-shadow: 0 0 10px rgba(231, 76, 60, 0.5); }  /* 神器 - 红金光 */
+.quality-daoqi { 
+    color: #fff; 
+    text-shadow: 0 0 15px rgba(255, 215, 0, 0.8), 0 0 30px rgba(255, 215, 0, 0.4);
+    animation: daoqi-glow 2s ease-in-out infinite;
+}  /* 道器 - 白金光晕 */
+
+@keyframes daoqi-glow {
+    0%, 100% { text-shadow: 0 0 15px rgba(255, 215, 0, 0.8), 0 0 30px rgba(255, 215, 0, 0.4); }
+    50% { text-shadow: 0 0 20px rgba(255, 215, 0, 1), 0 0 40px rgba(255, 215, 0, 0.6); }
+}
+
+/* ---------- 元素伤害颜色 ---------- */
+.element-wind { color: #2ecc71; }     /* 风 - 绿色 */
+.element-rain { color: #3498db; }     /* 雨 - 蓝色 */
+.element-thunder { color: #f39c12; }  /* 雷 - 橙色 */
+.element-lightning { color: #f1c40f; } /* 电 - 黄色 */
+.element-fire { color: #e74c3c; }     /* 火 - 红色 */
+.element-ice { color: #aed6f1; }      /* 冰 - 浅蓝 */
+
+/* ---------- 职业图标颜色 ---------- */
+.profession-forge { color: #e67e22; }    /* 锻造师 - 橙色 */
+.profession-summon { color: #9b59b6; }   /* 召唤师 - 紫色 */
+.profession-weapon { color: #e74c3c; }   /* 暗器师 - 红色 */
+
+/* ---------- 天赋图标颜色 ---------- */
+.talent-luck { color: #f1c40f; }      /* 运气 - 金色 */
+.talent-tank { color: #95a5a6; }      /* 肉盾 - 灰色 */
+.talent-range { color: #e74c3c; }     /* 远攻 - 红色 */
+.talent-cloud { color: #3498db; }     /* 控云 - 蓝色 */
+
+/* ---------- 战斗特效动画 ---------- */
+@keyframes damage-flash {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; background: rgba(231, 76, 60, 0.3); }
+}
+
+@keyframes heal-glow {
+    0%, 100% { box-shadow: 0 0 5px rgba(46, 204, 113, 0.5); }
+    50% { box-shadow: 0 0 20px rgba(46, 204, 113, 0.8); }
+}
+
+@keyframes critical-hit {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.2); color: #f1c40f; }
+    100% { transform: scale(1); }
+}
+
+.damage-animation {
+    animation: damage-flash 0.3s ease;
+}
+
+.heal-animation {
+    animation: heal-glow 0.5s ease;
+}
+
+.critical-animation {
+    animation: critical-hit 0.4s ease;
+}
+
+/* ---------- 按钮悬停光效 ---------- */
+body.theme-evil .btn-action:hover {
+    box-shadow: 0 0 20px rgba(142, 68, 173, 0.5);
+}
+
+body.theme-righteous .btn-action:hover {
+    box-shadow: 0 0 15px rgba(44, 95, 125, 0.3);
+}
+
+/* ---------- 日志条目类型颜色 ---------- */
+.log-entry.normal {
+    border-left-color: var(--primary-light);
+}
+
+.log-entry.combat {
+    border-left-color: #e74c3c;
+    background: rgba(231, 76, 60, 0.05);
+}
+
+.log-entry.reward {
+    border-left-color: #f1c40f;
+    background: rgba(241, 196, 15, 0.05);
+}
+
+.log-entry.levelup {
+    border-left-color: #2ecc71;
+    background: rgba(46, 204, 113, 0.1);
+    font-weight: bold;
+}
+
+.log-entry.danger {
+    border-left-color: #c0392b;
+    background: rgba(192, 57, 43, 0.1);
+    color: #c0392b;
+}
+
+/* ---------- 响应式主题调整 ---------- */
+@media (max-width: 768px) {
+    body.theme-evil .game-header {
+        padding: 10px;
+    }
+    
+    body.theme-evil .player-info {
+        font-size: 0.9em;
+    }
+}
