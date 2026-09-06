@@ -117,6 +117,7 @@
                 <div class="header-actions">
                     <button id="btn-save" class="btn-small">保存</button>
                     <button id="btn-export" class="btn-small">导出</button>
+                    <button id="btn-cloud-save" class="btn-small" title="云存档">☁️ 云存档</button>
                     <button id="btn-menu" class="btn-small">菜单</button>
                 </div>
             </header>
@@ -382,6 +383,52 @@
         </div>
     </div>
 
+    
+    <!-- 云存档对话框 -->
+    <div id="cloud-save-dialog" class="modal">
+        <div class="modal-content">
+            <h3>☁️ 云存档</h3>
+            <p style="font-size:13px;color:#666;margin-bottom:12px;">将存档保存到 GitHub，实现多设备同步。与 GitHub Drive 联动。</p>
+            
+            <!-- Token 配置区 -->
+            <div id="cloud-token-section">
+                <label style="font-size:13px;font-weight:600;display:block;margin-bottom:6px;">GitHub Token</label>
+                <input type="password" id="cloud-token-input" placeholder="输入 GitHub Personal Access Token" 
+                       style="width:100%;padding:8px;border:1px solid #ddd;border-radius:4px;margin-bottom:8px;font-size:13px;">
+                <p style="font-size:11px;color:#999;margin-bottom:12px;">需要 repo 权限。Token 仅保存在本地浏览器。</p>
+                <div style="display:flex;gap:8px;margin-bottom:16px;">
+                    <button id="btn-verify-token" class="btn btn-primary" style="flex:1;">验证并保存</button>
+                    <button id="btn-clear-token" class="btn btn-secondary" style="flex:1;">清除</button>
+                </div>
+            </div>
+            
+            <!-- 已登录状态 -->
+            <div id="cloud-logged-in" style="display:none;">
+                <div style="background:#f0f9ff;padding:10px;border-radius:6px;margin-bottom:12px;">
+                    <span style="font-size:13px;">✅ 已登录: <strong id="cloud-username"></strong></span>
+                </div>
+                
+                <!-- 操作按钮 -->
+                <div style="display:flex;gap:8px;margin-bottom:16px;">
+                    <button id="btn-upload-cloud" class="btn btn-primary" style="flex:1;">⬆️ 上传当前存档</button>
+                    <button id="btn-refresh-cloud" class="btn btn-secondary" style="padding:8px 12px;">🔄</button>
+                </div>
+                
+                <!-- 存档列表 -->
+                <div style="margin-bottom:12px;">
+                    <label style="font-size:13px;font-weight:600;display:block;margin-bottom:6px;">云端存档列表</label>
+                    <div id="cloud-save-list" style="max-height:200px;overflow-y:auto;border:1px solid #eee;border-radius:4px;padding:8px;">
+                        <p style="font-size:12px;color:#999;text-align:center;">加载中...</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div style="display:flex;gap:8px;">
+                <button id="btn-close-cloud" class="btn btn-secondary" style="flex:1;">关闭</button>
+            </div>
+        </div>
+    </div>
+
     <!-- 导入存档对话框 -->
     <div id="import-dialog" class="modal">
         <div class="modal-content">
@@ -459,6 +506,7 @@
     <script src="js/combat.js"></script>
     <script src="js/inventory.js"></script>
     <script src="js/save_load.js"></script>
+    <script src="js/cloud-save.js"></script>
     <script src="js/evil_cultivation.js"></script>
     <script src="js/ui.js"></script>
     <script src="js/main.js"></script>

@@ -106,6 +106,28 @@ const UI = {
             this.exportSave();
         });
         
+        // 云存档
+        document.getElementById('btn-cloud-save')?.addEventListener('click', () => {
+            this.openCloudSave();
+        });
+        document.getElementById('btn-verify-token')?.addEventListener('click', () => {
+            this.verifyCloudToken();
+        });
+        document.getElementById('btn-clear-token')?.addEventListener('click', () => {
+            CloudSave.clearToken();
+            this.updateCloudUI();
+            this.addLog('☁️ 已清除 GitHub Token', Utils.LogType.NORMAL);
+        });
+        document.getElementById('btn-upload-cloud')?.addEventListener('click', () => {
+            this.uploadToCloud();
+        });
+        document.getElementById('btn-refresh-cloud')?.addEventListener('click', () => {
+            this.loadCloudSaveList();
+        });
+        document.getElementById('btn-close-cloud')?.addEventListener('click', () => {
+            this.hideModal('cloud-save-dialog');
+        });
+        
         document.getElementById('btn-close-inventory')?.addEventListener('click', () => {
             this.showScreen('main-game');
         });
@@ -1111,6 +1133,106 @@ const UI = {
         if (Game.state.isPlaying) {
             this.applyTheme(Game.player.faction);
         }
+    },
+    
+    // ==================== 云存档系统 ====================
+    
+    openCloudSave() {
+        this.showModal('cloud-save-dialog');
+        this.updateCloudUI();
+        if (CloudSave.getToken()) {
+            this.loadCloudSaveList();
+        }
+    },
+    
+    async verifyCloudToken() {
+        const token = document.getElementById('cloud-token-input').value.trim();
+        if (!token) { alert('请输入 GitHub Token'); return; }
+        CloudSave.setToken(token);
+        const username = await CloudSave.verifyToken();
+        if (username) {
+            this.addLog('☁️ GitHub 验证成功: ' + username, Utils.LogType.SUCCESS);
+            this.updateCloudUI();
+            this.loadCloudSaveList();
+        } else {
+            alert('Token 验证失败，请检查 Token 是否正确且有 repo 权限');
+            CloudSave.clearToken();
+        }
+    },
+    
+    updateCloudUI() {
+        const tokenSection = document.getElementById('cloud-token-section');
+        const loggedInSection = document.getElementById('cloud-logged-in');
+        const usernameEl = document.getElementById('cloud-username');
+        if (CloudSave.getToken()) {
+            tokenSection.style.display = 'none';
+            loggedInSection.style.display = 'block';
+            CloudSave.getUsername().then(name => { if (name) usernameEl.textContent = name; });
+        } else {
+            tokenSection.style.display = 'block';
+            loggedInSection.style.display = 'none';
+        }
+    },
+    
+    async uploadToCloud() {
+        if (!Game.player) { alert('没有可上传的存档'); return; }
+        const slotName = prompt('请输入存档名称:', 'save_' + new Date().toISOString().slice(0, 10));
+        if (!slotName) return;
+        this.addLog('☁️ 正在上传云存档...', Utils.LogType.NORMAL);
+        const success = await CloudSave.uploadSave(Game.player, slotName);
+        if (success) {
+            this.addLog('✅ 云存档上传成功: ' + slotName, Utils.LogType.SUCCESS);
+            this.loadCloudSaveList();
+        } else {
+            this.addLog('❌ 云存档上传失败', Utils.LogType.ERROR);
+            alert('上传失败，请检查网络和 Token 权限');
+        }
+    },
+    
+    async loadCloudSaveList() {
+        const listEl = document.getElementById('cloud-save-list');
+        listEl.innerHTML = '<p style="font-size:12px;color:#999;text-align:center;">加载中...</p>';
+        const saves = await CloudSave.listSaves();
+        if (saves.length === 0) {
+            listEl.innerHTML = '<p style="font-size:12px;color:#999;text-align:center;">暂无云端存档</p>';
+            return;
+        }
+        listEl.innerHTML = saves.map(save => 
+            '<div style="display:flex;justify-content:space-between;align-items:center;padding:8px;border-bottom:1px solid #eee;">' +
+            '<div><div style="font-size:13px;font-weight:600;">' + save.name + '</div>' +
+            '<div style="font-size:11px;color:#999;">' + new Date(save.lastModified).toLocaleString('zh-CN') + '</div></div>' +
+            '<div style="display:flex;gap:4px;">' +
+            '<button onclick="UI.downloadFromCloud(\'' + save.name + '\')" style="padding:4px 8px;font-size:11px;background:#4CAF50;color:#fff;border:none;border-radius:3px;cursor:pointer;">下载</button>' +
+            '<button onclick="UI.deleteCloudSave(\'' + save.name + '\')" style="padding:4px 8px;font-size:11px;background:#f44336;color:#fff;border:none;border-radius:3px;cursor:pointer;">删除</button>' +
+            '</div></div>'
+        ).join('');
+    },
+    
+    async downloadFromCloud(slotName) {
+        if (!confirm('确定要下载存档 "' + slotName + '" 吗？当前进度将被覆盖。')) return;
+        this.addLog('☁️ 正在下载存档: ' + slotName + '...', Utils.LogType.NORMAL);
+        const data = await CloudSave.downloadSave(slotName);
+        if (data) {
+            Game.player = data;
+            Game.state.isPlaying = true;
+            Game.updateUI();
+            this.showScreen('main-game');
+            this.hideModal('cloud-save-dialog');
+            this.addLog('✅ 存档下载成功: ' + slotName, Utils.LogType.SUCCESS);
+        } else {
+            this.addLog('❌ 存档下载失败', Utils.LogType.ERROR);
+        }
+    },
+    
+    async deleteCloudSave(slotName) {
+        if (!confirm('确定要删除云端存档 "' + slotName + '" 吗？此操作不可恢复。')) return;
+        const success = await CloudSave.deleteSave(slotName);
+        if (success) {
+            this.addLog('🗑️ 云端存档已删除: ' + slotName, Utils.LogType.NORMAL);
+            this.loadCloudSaveList();
+        } else {
+            this.addLog('❌ 删除失败', Utils.LogType.ERROR);
+        }
     }
 };
 
@@ -1139,4 +1261,5 @@ document.addEventListener('DOMContentLoaded', () => {
 // 导出UI对象
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = UI;
+
 }
