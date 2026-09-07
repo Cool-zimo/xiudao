@@ -1,0 +1,396 @@
+/* 修仙模拟器 2.0 — 主样式 */
+
+:root {
+    --bg: #0f172a;
+    --bg-soft: #1e293b;
+    --panel: #1e293b;
+    --border: #334155;
+    --text: #e2e8f0;
+    --text-dim: #94a3b8;
+    --accent: #10b981;
+    --accent-2: #6366f1;
+    --danger: #ef4444;
+    --warn: #f59e0b;
+    --gold: #fbbf24;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei', sans-serif;
+    min-height: 100vh;
+    line-height: 1.6;
+}
+
+.hidden { display: none !important; }
+
+/* ---------- 头部 ---------- */
+.app-header {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 14px 24px;
+    background: var(--bg-soft);
+    border-bottom: 1px solid var(--border);
+}
+.app-header h1 { font-size: 20px; font-weight: 600; }
+.app-header .ver {
+    font-size: 12px; background: var(--accent); color: #052e26;
+    padding: 2px 8px; border-radius: 10px; margin-left: 6px; vertical-align: middle;
+}
+.header-actions button {
+    background: var(--border); color: var(--text);
+    border: none; padding: 7px 14px; border-radius: 6px;
+    cursor: pointer; margin-left: 8px; font-size: 13px;
+}
+.header-actions button:hover { background: var(--accent-2); }
+
+/* ---------- 创建界面 ---------- */
+.screen { padding: 24px; }
+.create-box {
+    max-width: 420px; margin: 40px auto;
+    background: var(--panel); padding: 32px; border-radius: 12px;
+    border: 1px solid var(--border);
+}
+.create-box h2 { text-align: center; margin-bottom: 24px; font-size: 24px; }
+.form-row { margin-bottom: 16px; display: flex; align-items: center; gap: 12px; }
+.form-row label { width: 60px; color: var(--text-dim); font-size: 14px; }
+.form-row input, .form-row select {
+    flex: 1; padding: 9px 12px; border-radius: 6px;
+    background: var(--bg); color: var(--text);
+    border: 1px solid var(--border); font-size: 14px;
+}
+button.primary {
+    width: 100%; margin-top: 12px; padding: 12px;
+    background: var(--accent); color: #052e26;
+    border: none; border-radius: 8px; font-size: 16px;
+    font-weight: 600; cursor: pointer;
+}
+button.primary:hover { filter: brightness(1.1); }
+button.ghost {
+    width: 100%; margin-top: 10px; padding: 12px;
+    background: transparent; color: var(--text-dim);
+    border: 1px solid var(--border); border-radius: 8px;
+    font-size: 15px; cursor: pointer;
+}
+button.ghost:hover { color: var(--text); border-color: var(--accent-2); }
+
+/* 主页操作区 */
+.home-actions {
+    max-width: 340px; margin: 18px auto 40px;
+}
+.save-tip {
+    margin-top: 16px; padding: 10px; background: rgba(99,102,241,0.15);
+    border-radius: 6px; font-size: 13px; color: var(--text-dim); text-align: center;
+}
+
+/* ---------- 主布局 ---------- */
+.main-layout {
+    display: grid; grid-template-columns: 380px 1fr; gap: 20px;
+    max-width: 1200px; margin: 0 auto; align-items: start;
+}
+@media (max-width: 900px) { .main-layout { grid-template-columns: 1fr; } }
+
+.hud-container, .panel-container {
+    background: var(--panel); border-radius: 12px;
+    border: 1px solid var(--border); padding: 20px;
+}
+.panel-container {
+    min-height: 500px;
+    background-size: cover;
+    background-position: center;
+    transition: background-image .4s ease;
+}
+
+/* ---------- HUD ---------- */
+.hud-top { display: flex; align-items: center; gap: 14px; margin-bottom: 18px; }
+
+/* 角色立绘 */
+.portrait-wrap {
+    position: relative; width: 84px; flex-shrink: 0;
+}
+.portrait {
+    width: 84px; height: 112px; object-fit: cover; object-position: top center;
+    border-radius: 8px; border: 2px solid var(--border);
+    background: var(--bg); display: block;
+    transition: border-color .3s, box-shadow .3s;
+}
+.portrait-wrap[data-stage="走火入魔"] .portrait {
+    border-color: var(--danger);
+    box-shadow: 0 0 14px rgba(239,68,68,.45);
+}
+.portrait-wrap[data-stage="登堂入室"] .portrait {
+    border-color: var(--gold);
+    box-shadow: 0 0 12px rgba(251,191,36,.35);
+}
+.portrait-stage {
+    margin-top: 4px; text-align: center; font-size: 10px;
+    color: var(--text-dim); letter-spacing: .5px;
+}
+.portrait-wrap[data-stage="走火入魔"] .portrait-stage { color: var(--danger); }
+
+.avatar {
+    width: 52px; height: 52px; border-radius: 50%;
+    background: linear-gradient(135deg, var(--accent-2), var(--accent));
+    display: flex; align-items: center; justify-content: center;
+    font-size: 22px; font-weight: 700; color: #052e26; flex-shrink: 0;
+}
+.avatar[data-faction="邪修"] {
+    background: linear-gradient(135deg, #7f1d1d, #dc2626); color: #fef2f2;
+}
+.hud-basic { flex: 1; min-width: 0; }
+.hud-basic .name { font-size: 17px; font-weight: 600; }
+.hud-basic .realm { font-size: 14px; color: var(--gold); }
+.hud-basic .realm .lv { color: var(--text-dim); font-size: 12px; margin-left: 4px; }
+.hud-basic .sub { font-size: 12px; color: var(--text-dim); }
+
+.karma-badge {
+    border: 2px solid; border-radius: 8px; padding: 6px 10px;
+    text-align: center; font-size: 11px; flex-shrink: 0;
+}
+.karma-tier { font-weight: 600; font-size: 13px; }
+.karma-value { color: var(--text-dim); }
+
+/* 进度条 */
+.bars { margin-bottom: 16px; }
+.bar-row { display: flex; align-items: center; gap: 8px; margin-bottom: 7px; }
+.bar-row label { width: 34px; font-size: 11px; color: var(--text-dim); }
+.bar-row .bar {
+    flex: 1; height: 9px; background: var(--bg);
+    border-radius: 5px; overflow: hidden;
+}
+.bar-row .fill { height: 100%; border-radius: 5px; transition: width .35s ease; }
+.fill.hp { background: linear-gradient(90deg, #ef4444, #f87171); }
+.fill.mp { background: linear-gradient(90deg, #3b82f6, #60a5fa); }
+.fill.exp { background: linear-gradient(90deg, #10b981, #34d399); }
+.fill.realm { background: linear-gradient(90deg, #a855f7, #c084fc); }
+.bar-row span { font-size: 11px; color: var(--text-dim); width: 68px; text-align: right; }
+
+/* 属性 */
+.attrs {
+    display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px;
+    margin-bottom: 16px; text-align: center;
+}
+.attrs label { display: block; font-size: 11px; color: var(--text-dim); }
+.attrs b { font-size: 15px; color: var(--gold); }
+
+/* 遗物 */
+.relics { margin-bottom: 16px; }
+.relics h4 { font-size: 12px; color: var(--text-dim); margin-bottom: 6px; }
+.relic-list { display: flex; flex-wrap: wrap; gap: 6px; }
+.relic {
+    font-size: 11px; padding: 3px 8px; background: rgba(168,85,247,0.2);
+    border: 1px solid #a855f7; border-radius: 10px; cursor: help;
+}
+
+/* 操作按钮 */
+.hud-actions { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.hud-actions button {
+    padding: 10px 4px; background: var(--bg); color: var(--text);
+    border: 1px solid var(--border); border-radius: 8px;
+    cursor: pointer; font-size: 13px; transition: all .15s;
+}
+.hud-actions button:hover:not(:disabled) {
+    background: var(--accent-2); border-color: var(--accent-2);
+}
+.hud-actions button:disabled { opacity: .35; cursor: not-allowed; }
+
+/* ---------- 日志面板 ---------- */
+.log-panel { max-height: 460px; overflow-y: auto; }
+.log-line {
+    padding: 7px 10px; margin-bottom: 5px; border-radius: 6px;
+    font-size: 13px; background: var(--bg); border-left: 3px solid var(--border);
+}
+.log-line.levelup { border-left-color: var(--accent); background: rgba(16,185,129,.1); }
+.log-line.danger { border-left-color: var(--danger); background: rgba(239,68,68,.1); }
+.log-line.reward { border-left-color: var(--gold); background: rgba(251,191,36,.1); }
+.log-line.karma { border-left-color: #a855f7; background: rgba(168,85,247,.1); }
+.log-line.story { border-left-color: var(--accent-2); background: rgba(99,102,241,.1); }
+
+/* ---------- 功法面板 ---------- */
+.method-panel h3 { font-size: 15px; margin: 16px 0 10px; }
+.method-slots { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.method-slot { background: var(--bg); border-radius: 8px; padding: 12px; border: 1px solid var(--border); }
+.slot-label { font-size: 12px; color: var(--text-dim); margin-bottom: 6px; }
+.slot-current { min-height: 46px; margin-bottom: 10px; }
+.slot-current.empty { color: var(--text-dim); font-size: 13px; }
+.slot-current b { display: block; font-size: 14px; color: var(--gold); }
+.slot-current span { font-size: 11px; color: var(--text-dim); }
+
+.slot-options { max-height: 190px; overflow-y: auto; }
+.method-option {
+    padding: 7px 9px; margin-bottom: 5px; background: var(--panel);
+    border-radius: 6px; cursor: pointer; font-size: 12px;
+    display: flex; justify-content: space-between; align-items: center; gap: 6px;
+    border: 1px solid transparent;
+}
+.method-option:hover { border-color: var(--accent-2); }
+.method-option.selected { border-color: var(--accent); background: rgba(16,185,129,.12); }
+.mo-name { flex: 1; }
+.mo-speed { color: var(--accent); font-size: 11px; }
+.mo-risk { font-size: 11px; }
+.mo-risk.neg { color: var(--danger); }
+.mo-risk.pos { color: var(--accent); }
+
+.combo-display {
+    margin: 14px 0; padding: 12px; border-radius: 8px;
+    background: var(--bg); border: 1px dashed var(--border);
+}
+.combo-display.active { border-color: var(--gold); background: rgba(251,191,36,.1); }
+.combo-name { font-weight: 600; color: var(--gold); font-size: 14px; }
+.combo-desc { font-size: 12px; color: var(--text-dim); }
+.combo-hint { font-size: 12px; color: var(--text-dim); }
+
+.profile-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 8px; }
+.profile-stats .stat {
+    background: var(--bg); padding: 8px; border-radius: 6px; text-align: center;
+}
+.profile-stats .stat span { display: block; font-size: 11px; color: var(--text-dim); }
+.profile-stats .stat b { font-size: 15px; }
+.profile-stats .stat b.danger { color: var(--danger); }
+.profile-stats .stat b.up { color: var(--accent); }
+.profile-stats .stat b.down { color: var(--danger); }
+
+.skill-list { display: grid; gap: 6px; }
+.skill-item {
+    display: grid; grid-template-columns: 90px 34px 100px 1fr; gap: 8px;
+    align-items: center; padding: 8px 10px; background: var(--bg);
+    border-radius: 6px; font-size: 12px;
+}
+.skill-name { font-weight: 600; }
+.skill-element {
+    text-align: center; padding: 2px 0; border-radius: 4px;
+    font-size: 11px; font-weight: 700;
+}
+.el-金 { background: #78716c; } .el-木 { background: #16a34a; }
+.el-水 { background: #0284c7; } .el-火 { background: #dc2626; }
+.el-土 { background: #a16207; } .el-雷 { background: #7c3aed; }
+.skill-cost { color: var(--text-dim); font-size: 11px; }
+.skill-desc { color: var(--text-dim); font-size: 11px; }
+
+.combo-list { margin-top: 14px; }
+.combo-list h4 { font-size: 13px; color: var(--text-dim); margin-bottom: 8px; }
+.combo-item {
+    display: flex; flex-direction: column; gap: 2px;
+    padding: 9px 11px; background: var(--bg); border-radius: 6px;
+    margin-bottom: 6px; border-left: 3px solid var(--accent);
+}
+.combo-item b { font-size: 13px; color: var(--gold); }
+.combo-item span { font-size: 12px; }
+.combo-item em { font-size: 11px; color: var(--text-dim); font-style: normal; }
+
+.element-counter { margin-top: 14px; }
+.element-counter h4 { font-size: 13px; color: var(--text-dim); margin-bottom: 6px; }
+.counter-pair {
+    display: inline-block; margin: 0 6px 6px 0; padding: 3px 9px;
+    background: var(--bg); border-radius: 4px; font-size: 12px;
+}
+
+/* ---------- 秘境地图 ---------- */
+.dungeon-header {
+    display: flex; justify-content: space-between; margin-bottom: 16px;
+    padding-bottom: 10px; border-bottom: 1px solid var(--border);
+}
+.dungeon-floor { font-size: 16px; font-weight: 600; color: var(--gold); }
+.dungeon-progress { color: var(--text-dim); font-size: 13px; }
+
+.dungeon-path {
+    display: flex; flex-wrap: wrap; gap: 10px; justify-content: center;
+    padding: 20px 0;
+}
+.dungeon-node {
+    width: 84px; padding: 12px 6px; text-align: center;
+    background: var(--bg); border: 2px solid var(--border);
+    border-radius: 10px; cursor: default; transition: all .2s;
+    position: relative;
+}
+.dungeon-node .node-icon { font-size: 26px; }
+.dungeon-node .node-name { font-size: 11px; color: var(--text-dim); margin-top: 4px; }
+.dungeon-node.hidden { opacity: .4; border-style: dashed; }
+.dungeon-node.revealed { border-color: var(--accent-2); }
+.dungeon-node.current {
+    border-color: var(--accent); background: rgba(16,185,129,.15);
+    cursor: pointer; transform: scale(1.08);
+    box-shadow: 0 0 16px rgba(16,185,129,.3);
+}
+.dungeon-node.current:hover { transform: scale(1.14); }
+.dungeon-node.cleared { opacity: .55; border-color: var(--accent); }
+.dungeon-node .node-marker {
+    position: absolute; bottom: -18px; left: 50%; transform: translateX(-50%);
+    color: var(--accent); font-size: 14px;
+}
+.dungeon-legend {
+    display: flex; flex-wrap: wrap; gap: 10px; justify-content: center;
+    margin-top: 16px; padding-top: 12px; border-top: 1px solid var(--border);
+    font-size: 11px; color: var(--text-dim);
+}
+
+/* ---------- 随机事件 ---------- */
+.event-box { padding: 10px; }
+.event-box h3 { font-size: 18px; color: var(--gold); margin-bottom: 12px; }
+.event-desc {
+    font-size: 14px; line-height: 1.8; color: var(--text);
+    padding: 14px; background: var(--bg); border-radius: 8px;
+    border-left: 3px solid var(--accent-2); margin-bottom: 18px;
+}
+.event-choices { display: grid; gap: 10px; }
+.event-choice {
+    padding: 13px 16px; background: var(--bg); color: var(--text);
+    border: 1px solid var(--border); border-radius: 8px;
+    cursor: pointer; font-size: 14px; text-align: left; transition: all .15s;
+}
+.event-choice:hover { background: var(--accent-2); border-color: var(--accent-2); }
+
+/* ---------- 走火入魔 ---------- */
+.deviation-box {
+    padding: 20px; text-align: center;
+    background: rgba(239,68,68,.08); border: 1px solid var(--danger);
+    border-radius: 10px;
+}
+.deviation-box h3 { color: var(--danger); font-size: 20px; margin-bottom: 10px; }
+.deviation-box p { color: var(--text-dim); margin-bottom: 16px; }
+.deviation-opt {
+    display: block; width: 100%; margin-bottom: 9px; padding: 12px;
+    background: var(--bg); color: var(--text); border: 1px solid var(--border);
+    border-radius: 8px; cursor: pointer; font-size: 14px;
+}
+.deviation-opt:hover { background: var(--danger); border-color: var(--danger); }
+
+/* ---------- 天劫 Canvas ---------- */
+.tribulation-wrap { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+#trib-canvas {
+    border-radius: 10px; border: 1px solid var(--border);
+    background: #0f172a; max-width: 100%;
+    box-shadow: 0 0 30px rgba(99,102,241,.25);
+}
+.trib-tip { font-size: 12px; color: var(--text-dim); }
+.trib-result { margin-top: 10px; text-align: center; }
+.trib-result .success h3 { color: var(--accent); font-size: 18px; }
+.trib-result .failed h3 { color: var(--danger); font-size: 18px; }
+.trib-result p { color: var(--text-dim); font-size: 13px; margin: 6px 0; }
+.trib-result button {
+    margin-top: 10px; padding: 9px 22px; background: var(--accent-2);
+    color: #fff; border: none; border-radius: 6px; cursor: pointer;
+}
+
+/* ---------- 弹窗 ---------- */
+.modal {
+    position: fixed; inset: 0; background: rgba(0,0,0,.7);
+    display: flex; align-items: center; justify-content: center; z-index: 100;
+}
+.modal-content {
+    background: var(--panel); border-radius: 12px; padding: 24px;
+    max-width: 500px; width: 90%; position: relative;
+    border: 1px solid var(--border);
+}
+.modal-close {
+    position: absolute; top: 12px; right: 16px; font-size: 24px;
+    cursor: pointer; color: var(--text-dim);
+}
+.modal-close:hover { color: var(--text); }
+
+/* 滚动条 */
+::-webkit-scrollbar { width: 8px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: var(--text-dim); }

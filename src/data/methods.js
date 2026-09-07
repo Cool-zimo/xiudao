@@ -1,0 +1,142 @@
+export default {
+  "version": 1,
+  "note": "功法系统：主修1门 + 辅修1门，组合产生化学反应。risk 为走火入魔基础概率增量",
+  "methods": [
+    {
+      "id": "qingyun",
+      "name": "青云诀",
+      "type": "main",
+      "rarity": "common",
+      "desc": "中正平和的入门功法，修炼稳健，几乎不会走火入魔",
+      "speed": 1.0,
+      "risk": 0.0,
+      "bonus": { "maxHp": 20, "defense": 3 },
+      "tags": ["正道", "平稳"]
+    },
+    {
+      "id": "liehuo",
+      "name": "烈火诀",
+      "type": "main",
+      "rarity": "common",
+      "desc": "霸道刚猛，修炼极快但易伤身",
+      "speed": 1.6,
+      "risk": 0.12,
+      "bonus": { "attack": 15, "maxHp": -10 },
+      "tags": ["刚猛", "速成"]
+    },
+    {
+      "id": "xuantian",
+      "name": "玄天清心诀",
+      "type": "main",
+      "rarity": "rare",
+      "desc": "清心寡欲，大幅降低走火入魔风险",
+      "speed": 0.85,
+      "risk": -0.08,
+      "bonus": { "maxMp": 40, "luck": 5 },
+      "tags": ["正道", "守心"]
+    },
+    {
+      "id": "xuehai",
+      "name": "血海魔功",
+      "type": "main",
+      "rarity": "epic",
+      "desc": "以血养功，进境惊人，心魔滋生",
+      "speed": 2.1,
+      "risk": 0.25,
+      "bonus": { "attack": 30, "maxHp": 60, "defense": -5 },
+      "karmaPerCultivate": 2,
+      "requireFaction": "邪修",
+      "tags": ["魔道", "速成"]
+    },
+    {
+      "id": "taixu",
+      "name": "太虚纳灵诀",
+      "type": "main",
+      "rarity": "rare",
+      "desc": "广纳天地灵气，修为增长稳定且兼顾法力",
+      "speed": 1.25,
+      "risk": 0.03,
+      "bonus": { "maxMp": 60, "maxHp": 30 },
+      "tags": ["正道", "均衡"]
+    },
+    {
+      "id": "guiyuan",
+      "name": "归元吐纳法",
+      "type": "support",
+      "rarity": "common",
+      "desc": "辅修：加速主功法运转",
+      "speed": 0.3,
+      "risk": -0.02,
+      "bonus": { "maxHp": 15 },
+      "tags": ["辅助"]
+    },
+    {
+      "id": "jingxin",
+      "name": "静心咒",
+      "type": "support",
+      "rarity": "common",
+      "desc": "辅修：压制心魔，降低走火入魔概率",
+      "speed": 0,
+      "risk": -0.1,
+      "bonus": { "maxMp": 20 },
+      "tags": ["辅助", "守心"]
+    },
+    {
+      "id": "kuangzhan",
+      "name": "狂战诀",
+      "type": "support",
+      "rarity": "rare",
+      "desc": "辅修：战斗时攻击大增，修炼时易失控",
+      "speed": 0.2,
+      "risk": 0.08,
+      "bonus": { "attack": 20 },
+      "tags": ["辅助", "战斗"]
+    },
+    {
+      "id": "tunling",
+      "name": "吞灵诀",
+      "type": "support",
+      "rarity": "epic",
+      "desc": "辅修：击杀敌人时额外吸取修为",
+      "speed": 0.1,
+      "risk": 0.05,
+      "bonus": { "attack": 10 },
+      "karmaPerCultivate": 1,
+      "tags": ["魔道", "掠夺"]
+    }
+  ],
+  "combos": [
+    {
+      "id": "combo_shuangxiu",
+      "main": "xuantian",
+      "support": "jingxin",
+      "name": "道心通明",
+      "desc": "清心诀与静心咒共鸣，走火入魔概率几乎归零，且悟性提升",
+      "effect": { "riskDelta": -0.1, "speedDelta": 0.15 }
+    },
+    {
+      "id": "combo_xuezhan",
+      "main": "xuehai",
+      "support": "kuangzhan",
+      "name": "血战八方",
+      "desc": "血海魔功遇狂战诀，战力暴涨，但心魔失控",
+      "effect": { "attackDelta": 35, "riskDelta": 0.15, "karmaDelta": 3 }
+    },
+    {
+      "id": "combo_liehuo_guiyuan",
+      "main": "liehuo",
+      "support": "guiyuan",
+      "name": "刚柔并济",
+      "desc": "烈火诀的暴烈被归元法疏导，速度不减而风险大降",
+      "effect": { "riskDelta": -0.06, "speedDelta": 0.1 }
+    },
+    {
+      "id": "combo_taixu_guiyuan",
+      "main": "taixu",
+      "support": "guiyuan",
+      "name": "灵潮不息",
+      "desc": "纳灵与吐纳相辅相成，修为源源不断",
+      "effect": { "speedDelta": 0.25, "maxMpDelta": 30 }
+    }
+  ]
+}
