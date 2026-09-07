@@ -15,9 +15,9 @@ class El{
     getContext(){return new Proxy({},{get:(t,k)=>String(k).includes('Gradient')?()=>({addColorStop(){}}):()=>{}});}
 }
 const nodes={};
-for(const id of ['btn-home','btn-save','btn-load','btn-new','screen-home','screen-select','screen-main','home-container','select-container','hud-container','panel-container','btn-select-char','btn-continue-home','modal','modal-close','modal-body'])
+for(const id of ['btn-home','btn-save','btn-new','screen-login','screen-home','screen-select','screen-main','login-container','home-container','select-container','hud-container','panel-container','modal','modal-close','modal-body'])
     nodes[id]=new El(id.startsWith('btn')?'button':'div',id);
-for(const id of ['btn-continue-home','btn-home','btn-save','btn-new','screen-select','screen-main']) nodes[id].classList.add('hidden');
+for(const id of ['btn-home','btn-save','btn-new','screen-home','screen-select','screen-main']) nodes[id].classList.add('hidden');
 global.document={getElementById:id=>nodes[id]||(nodes[id]=new El('div',id)),createElement:t=>new El(t),addEventListener(){},documentElement:new El('html'),hidden:false};
 const store={};
 global.localStorage={getItem:k=>k in store?store[k]:null,setItem:(k,v)=>{store[k]=String(v);},removeItem:k=>{delete store[k];}};
@@ -28,10 +28,18 @@ global.confirm=()=>true;global.alert=m=>console.log('  [alert] '+m);
 global.MutationObserver=class{observe(){}};
 global.Image=class{set src(v){this._src=v;if(this.onload)this.onload();}};
 
+global.fetch = async () => ({ status:404, ok:false, headers:{get:()=>null}, json:async()=>({}) });
+
 await import('./src/main.js');
 await new Promise(r=>setTimeout(r,50));
-nodes['btn-select-char'].click();
-await new Promise(r=>setTimeout(r,50));
+
+// 登录页 → 本地试玩
+nodes['login-container'].querySelector('#btn-skip').click();
+await new Promise(r=>setTimeout(r,60));
+// 主页 → 进入洞府（无存档 → 自动到角色选择）
+nodes['home-container'].querySelector('#hs-enter').click();
+await new Promise(r=>setTimeout(r,60));
+// 角色选择 → 开辟洞天
 nodes['select-container'].querySelector('.cs-confirm').click();
 await new Promise(r=>setTimeout(r,80));
 

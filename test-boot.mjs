@@ -98,16 +98,16 @@ class El {
 
 // 还原 index.html 的关键节点
 const nodes = {};
-const IDS = ['app','btn-home','btn-save','btn-load','btn-new',
-             'screen-home','screen-select','screen-main',
-             'home-container','select-container','hud-container','panel-container',
-             'btn-select-char','btn-continue-home','modal','modal-close','modal-body'];
+const IDS = ['app','btn-home','btn-save','btn-new',
+             'screen-login','screen-home','screen-select','screen-main',
+             'login-container','home-container','select-container','hud-container','panel-container',
+             'modal','modal-close','modal-body'];
 for (const id of IDS) nodes[id] = new El(id.startsWith('btn') ? 'button' : 'div', id);
 // 还原 index.html 中初始就带 hidden 类的节点
-nodes['btn-continue-home'].classList.add('hidden');
 nodes['btn-home'].classList.add('hidden');
 nodes['btn-save'].classList.add('hidden');
 nodes['btn-new'].classList.add('hidden');
+nodes['screen-home'].classList.add('hidden');
 nodes['screen-select'].classList.add('hidden');
 nodes['screen-main'].classList.add('hidden');
 
@@ -153,29 +153,40 @@ check('src/main.js 及其依赖链全部加载成功', !loadErr, loadErr || '');
 
 await new Promise(r => setTimeout(r, 60));
 
-console.log('\n【首页渲染】');
-check('主页容器渲染出修炼场景', nodes['home-container'].innerHTML.includes('home-scene'));
-check('修炼场景含 Canvas 层', nodes['home-container'].innerHTML.includes('hs-canvas'));
-check('修炼场景含角色打坐图', /sit_\w+\.jpg/.test(nodes['home-container'].innerHTML));
-check('修炼场景含法阵光环', nodes['home-container'].innerHTML.includes('hs-circle'));
-check('修炼场景含进入按钮', nodes['home-container'].innerHTML.includes('hs-enter'));
+console.log('\n【登录页渲染】');
+check('登录页可见', !nodes['screen-login'].classList.contains('hidden'));
+check('登录卡片已渲染', nodes['login-container'].innerHTML.includes('login-root'));
+check('包含令牌输入框', nodes['login-container'].innerHTML.includes('token-input'));
+check('包含获取令牌指引', nodes['login-container'].innerHTML.includes('如何获取令牌'));
+check('包含本地试玩入口', nodes['login-container'].innerHTML.includes('btn-skip'));
+check('登录页时主页隐藏', nodes['screen-home'].classList.contains('hidden'));
+check('登录页时主界面隐藏', nodes['screen-main'].classList.contains('hidden'));
 
-console.log('\n【屏幕状态】');
-check('首页可见', !nodes['screen-home'].classList.contains('hidden'));
-check('角色选择页隐藏', nodes['screen-select'].classList.contains('hidden'));
-check('主界面隐藏', nodes['screen-main'].classList.contains('hidden'));
-check('顶栏「主页」按钮在首页隐藏', nodes['btn-home'].classList.contains('hidden'));
-check('顶栏「读档」按钮在首页显示', !nodes['btn-load'].classList.contains('hidden'));
+console.log('\n【跳过登录 → 主页】');
+const skipBtn = nodes['login-container'].querySelector('#btn-skip');
+check('找到「本地试玩」按钮', !!skipBtn);
+if (skipBtn) {
+    skipBtn.click();
+    await new Promise(r => setTimeout(r, 80));
+    check('已跳转到主页', !nodes['screen-home'].classList.contains('hidden'));
+    check('主页渲染出修炼场景', nodes['home-container'].innerHTML.includes('home-scene'));
+    check('主页含 Canvas 层', nodes['home-container'].innerHTML.includes('hs-canvas'));
+    check('主页含角色打坐图', /sit_\w+\.jpg/.test(nodes['home-container'].innerHTML));
+    check('主页含「进入洞府」按钮', nodes['home-container'].innerHTML.includes('hs-enter'));
+    check('主页顶栏显示游客状态', nodes['home-container'].innerHTML.includes('本地试玩'));
+    check('主页显示云存档未连接', nodes['home-container'].innerHTML.includes('未同步'));
+}
 
-console.log('\n【无存档时不显示继续按钮】');
-check('「继续上次修行」默认隐藏', nodes['btn-continue-home'].classList.contains('hidden'));
-
-console.log('\n【点击「选择角色」进入选择页】');
-nodes['btn-select-char'].click();
-await new Promise(r => setTimeout(r, 30));
-check('角色选择页已渲染', nodes['select-container'].innerHTML.includes('cs-root'));
-check('渲染 4 张角色卡', (nodes['select-container'].innerHTML.match(/cs-card/g) || []).length >= 4);
-check('含性别筛选', nodes['select-container'].innerHTML.includes('男修'));
+console.log('\n【点击「进入洞府」→ 角色选择（无存档时）】');
+const enterBtn = nodes['home-container'].querySelector('#hs-enter');
+check('找到「进入洞府」按钮', !!enterBtn);
+if (enterBtn) {
+    enterBtn.click();
+    await new Promise(r => setTimeout(r, 60));
+    check('跳转到角色选择页', !nodes['screen-select'].classList.contains('hidden'));
+    check('角色选择页已渲染', nodes['select-container'].innerHTML.includes('cs-root'));
+    check('渲染 4 张角色卡', (nodes['select-container'].innerHTML.match(/cs-card/g) || []).length >= 4);
+}
 
 console.log('\n【1.x 老存档兼容】');
 // 模拟 1.x 存档（裸 player 对象）

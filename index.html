@@ -10,31 +10,31 @@
 <body>
 
 <div id="app">
-    <header class="app-header">
+    <header class="app-header" id="app-header">
         <h1>🌿 修仙模拟器 <span class="ver">2.0</span></h1>
         <div class="header-actions">
             <button id="btn-home" class="hidden">🏠 主页</button>
-            <button id="btn-save" class="hidden">💾 存档</button>
-            <button id="btn-load">📂 读档</button>
-            <button id="btn-new" class="hidden">🔄 新局</button>
+            <button id="btn-save" class="hidden">💾 保存</button>
+            <button id="btn-new" class="hidden">🔄 重开</button>
         </div>
     </header>
 
-    <!-- 1. 主页：角色修炼动画 -->
-    <section id="screen-home" class="screen">
-        <div id="home-container"></div>
-        <div class="home-actions">
-            <button id="btn-select-char" class="primary">选择角色 · 开始修行</button>
-            <button id="btn-continue-home" class="ghost hidden">继续上次修行</button>
-        </div>
+    <!-- 1. 登录页 -->
+    <section id="screen-login" class="screen">
+        <div id="login-container"></div>
     </section>
 
-    <!-- 2. 角色选择 -->
+    <!-- 2. 主页：角色修炼动画 -->
+    <section id="screen-home" class="screen hidden">
+        <div id="home-container"></div>
+    </section>
+
+    <!-- 3. 角色选择 -->
     <section id="screen-select" class="screen hidden">
         <div id="select-container"></div>
     </section>
 
-    <!-- 3. 主界面 -->
+    <!-- 4. 主界面 -->
     <section id="screen-main" class="screen hidden">
         <div class="main-layout">
             <div id="hud-container" class="hud-container"></div>
