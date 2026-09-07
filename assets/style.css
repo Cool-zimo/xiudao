@@ -342,6 +342,50 @@ button.ghost:hover { color: var(--text); border-color: var(--accent-2); }
 .event-choice:hover { background: var(--accent-2); border-color: var(--accent-2); }
 
 /* ---------- 走火入魔 ---------- */
+/* ============ 开放世界地图 ============ */
+.wc-root { display: flex; flex-direction: column; align-items: center; }
+
+.wc-toolbar {
+    display: flex; align-items: center; gap: 8px;
+    width: 100%; max-width: var(--tw, 720px);
+    margin-bottom: 10px; flex-wrap: wrap;
+}
+.wc-btn {
+    padding: 6px 13px; font-size: 12.5px;
+    background: var(--bg); color: var(--text-dim);
+    border: 1px solid var(--border); border-radius: 7px; cursor: pointer;
+}
+.wc-btn:hover { color: var(--text); border-color: var(--accent-2); }
+.wc-btn.on {
+    background: rgba(56,189,248,.18); color: #7dd3fc;
+    border-color: rgba(56,189,248,.5);
+}
+.wc-pos {
+    font-size: 12px; color: var(--text-dim);
+    padding: 5px 10px; background: var(--bg);
+    border: 1px solid var(--border); border-radius: 7px;
+}
+.wc-hint { font-size: 11.5px; color: var(--text-dim); opacity: .75; margin-left: auto; }
+
+.wc-canvas {
+    border: 1px solid var(--border); border-radius: 10px;
+    background: #0f172a; display: block;
+    image-rendering: auto;
+    max-width: 100%;
+}
+
+.wc-legend {
+    margin-top: 12px; padding: 12px 14px;
+    background: var(--bg); border: 1px solid var(--border);
+    border-radius: 10px; width: 100%; max-width: var(--tw, 720px);
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 7px;
+}
+.wc-legend.hidden { display: none; }
+.wc-lg { display: flex; align-items: center; gap: 7px; font-size: 12px; }
+.wc-lg i { width: 13px; height: 13px; border-radius: 3px; flex-shrink: 0; }
+.wc-lg b { font-weight: 600; min-width: 52px; }
+.wc-lg span { color: var(--text-dim); font-size: 11px; }
+
 /* 走火入魔未化解时的阻塞提示 */
 .hud-block-tip {
     margin-top: 10px; padding: 9px 12px;

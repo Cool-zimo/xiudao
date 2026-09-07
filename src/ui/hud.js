@@ -107,6 +107,7 @@ export class HUD {
                         ${!canTribulate ? 'disabled' : (this.blocked ? lock : '')}>⚡ 渡劫</button>
                     <button data-action="dungeon" ${this.blocked ? lock : ''}>🗺️ 秘境</button>
                     <button data-action="event" ${this.blocked ? lock : ''}>❓ 机缘</button>
+                    <button data-action="world">🌏 天下</button>
                     <button data-action="methods">📖 功法</button>
                     <button data-action="purify">📿 诵经</button>
                     ${p.karma >= 20 ? `<button data-action="forbidden" ${this.blocked ? lock : ''}>🔮 禁忌</button>` : ''}

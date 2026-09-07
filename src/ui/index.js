@@ -2,10 +2,13 @@ import { HUD } from './hud.js';
 import { DungeonMap } from './dungeon-map.js';
 import { MethodPanel } from './method-panel.js';
 import { TribulationCanvas } from './tribulation-canvas.js';
+import { WorldCanvas } from './world-canvas.js';
 import { bus, EV } from '../core/event-bus.js';
 import { GameState } from '../core/store.js';
 import { RNG } from '../core/rng.js';
 import { SCENES, preloadArt } from './art.js';
+import { World } from '../systems/world.js';
+import { RES_DEFS, tileDef } from '../data/terrain.js';
 
 /**
  * UI 总入口 —— 唯一触碰 DOM 的层
@@ -36,6 +39,13 @@ export class UI {
             onChange: () => this.log('功法已更换')
         });
         this.tribCanvas = null;
+
+        // 开放世界：按存档种子生成，保证同一存档世界一致
+        const seed = game.state.player?.metadata?.createTime
+            ? this._hashSeed(game.state.player.metadata.createTime)
+            : 20240907;
+        this.world = new World(new RNG(seed));
+        this.worldCanvas = null;
 
         this._subscribe();
         this.render();
@@ -122,6 +132,10 @@ export class UI {
                 break;
             }
             case 'event': this.renderEvent(); this.clearScene(); break;
+            case 'world':
+                // 已渲染则跳过，避免事件频繁触发 render 时重建地图丢失玩家位置
+                if (!this.dom.panel.querySelector('.wc-root')) this.openWorld();
+                break;
             case 'tribulation': this.setScene('tribulation'); break;
             case 'cultivating': this.setScene('cultivate'); break;
             case 'deviation':
@@ -159,6 +173,7 @@ export class UI {
                 }
                 break;
             }
+            case 'world': this.openWorld(); break;
             case 'tribulation': this.startTribulationUI(); break;
             case 'dungeon': {
                 const floor = (this.game.dungeon.current?.floor || 0) + 1;
@@ -189,6 +204,129 @@ export class UI {
                 break;
             }
         }
+    }
+
+    /** 由存档创建时间派生世界种子 */
+    _hashSeed(str) {
+        let h = 2166136261;
+        for (let i = 0; i < String(str).length; i++) {
+            h ^= String(str).charCodeAt(i);
+            h = Math.imul(h, 16777619);
+        }
+        return Math.abs(h % 1000000);
+    }
+
+    // ---------- 开放世界 ----------
+
+    /** 进入世界地图 */
+    openWorld() {
+        this.panelMode = 'world';
+        this.clearScene();
+        // 玩家出生在山门
+        if (!this._worldInited) {
+            const s = this.world.sectRect;
+            const cx = s.x + Math.floor(s.w / 2);
+            const cy = s.y + Math.floor(s.h / 2);
+            this._spawn = this.world.findWalkableNear(cx, cy);
+            this._worldInited = true;
+        }
+
+        this.worldCanvas = new WorldCanvas(this.dom.panel, this.world, {
+            onTileInfo: (x, y, act) => this.handleWorldTile(x, y, act),
+            onMove: (r) => this.handleWorldMove(r)
+        });
+        this.worldCanvas.setPlayer(this._spawn.x, this._spawn.y);
+    }
+
+    /** 移动一格：妖兽林按危险度触发遭遇 */
+    handleWorldMove(r) {
+        if (!r.ok) { this.log(`🚫 ${r.reason}`, 'normal'); return; }
+
+        const def = tileDef(r.tile);
+        // 妖兽林：按 danger 概率遭遇
+        if (def.danger > 0 && this.rng.next() < def.danger * 0.35) {
+            this._worldEncounter(r.x, r.y, def);
+        }
+    }
+
+    /**
+     * 世界遭遇：P1 阶段用轻量快速结算
+     * （完整半即时战斗 UI 属 P2 范围，这里先保证"世界有危险"的反馈闭环）
+     */
+    _worldEncounter(x, y, def) {
+        const p = this.game.state.player;
+        if (!p) return;
+
+        const beasts = ['青纹狼', '赤眼狐', '铁背熊', '噬灵蟒', '幽林豹'];
+        const beast = this.rng.pick(beasts);
+
+        const power = (p.attributes.attack || 10)
+            + (p.attributes.defense || 5) * 0.5
+            + (p.cultivation?.level || 1) * 2
+            + (p.cultivation?.realmIndex || 0) * 8;
+        const beastPower = Math.floor(power * (0.45 + this.rng.next() * 0.6));
+
+        if (power >= beastPower) {
+            const exp = 15 + Math.floor(this.rng.next() * 25);
+            this.game._gainExp?.(exp);
+            this.log(`⚔️ 击退${beast}，获得 ${exp} 点修为`, 'reward');
+            if (this.rng.next() < 0.35) {
+                this._addItem(p, '妖兽内丹', 1);
+                this.log('💎 拾得妖兽内丹 ×1', 'reward');
+            }
+            bus.emit('battle:won', { player: p });
+        } else {
+            const dmg = Math.max(3, Math.floor((beastPower - power) * 1.5 + this.rng.next() * 8));
+            p.attributes.hp = Math.max(1, p.attributes.hp - dmg);
+            this.log(`🩸 不敌${beast}，受伤 ${dmg} 点`, 'danger');
+            if (p.attributes.hp <= 1) {
+                this.log('💀 险些殒命，勉强逃回山门', 'danger');
+                const s = this.world.sectRect;
+                this.worldCanvas.setPlayer(s.x + Math.floor(s.w / 2), s.y + Math.floor(s.h / 2));
+            }
+        }
+        this.hud.render();
+    }
+
+    /** 世界内交互：采集 / 查看 */
+    handleWorldTile(x, y, action) {
+        const p = this.game.state.player;
+        if (!p) return;
+
+        // 只允许操作玩家所在格
+        if (x !== this.worldCanvas.player.x || y !== this.worldCanvas.player.y) {
+            const def = tileDef(this.world.get(x, y));
+            const q = this.world.qiAt(x, y);
+            this.log(`🔍 ${def.name}（${x}, ${y}）灵气 ${q} — ${def.desc}`, 'info');
+            return;
+        }
+
+        if (action !== 'harvest') return;
+
+        // 采集
+        const got = this.world.harvest(x, y);
+        if (got) {
+            const def = RES_DEFS[got.type];
+            this._addItem(p, def.name, got.amount);
+            this.log(`⛏️ 采集到 ${def.name} ×${got.amount}`, 'reward');
+        } else if (this.world.get(x, y) === 'cave' && !this.world.hasBuilding(x, y)) {
+            // 洞府石台：开辟洞府
+            const r = this.world.build(x, y, 'cave');
+            if (r.ok) this.log(`🏠 于（${x}, ${y}）开辟洞府！此地灵气 ${this.world.qiAt(x, y)}`, 'levelup');
+            else this.log(r.reason, 'normal');
+        } else {
+            const q = this.world.qiAt(x, y);
+            this.log(`此处无事可做（灵气 ${q}）。灵气越高，在此修炼越快。`, 'normal');
+        }
+        this.worldCanvas.render();
+    }
+
+    /** 简易背包：同名物品堆叠 */
+    _addItem(player, name, count) {
+        player.inventory = player.inventory || [];
+        const slot = player.inventory.find(i => i.name === name);
+        if (slot) slot.count = (slot.count || 0) + count;
+        else player.inventory.push({ name, count });
     }
 
     /**
