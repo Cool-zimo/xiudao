@@ -29,11 +29,23 @@ const TRANSITIONS = {
         GameState.TRIBULATION, GameState.DUNGEON, GameState.EVENT,
         GameState.DEAD, GameState.HOME, GameState.CREATE
     ],
-    [GameState.CULTIVATING]: [GameState.PLAYING, GameState.DEAD],
+    // 走火入魔化解是 UI 层的抉择，不应阻塞玩家切换到其他玩法，
+    // 否则玩家不点化解选项时状态机会永久卡在 cultivating
+    [GameState.CULTIVATING]: [
+        GameState.PLAYING, GameState.DEAD, GameState.BATTLE,
+        GameState.TRIBULATION, GameState.DUNGEON, GameState.EVENT, GameState.HOME
+    ],
     [GameState.BATTLE]: [GameState.PLAYING, GameState.DEAD],
     [GameState.TRIBULATION]: [GameState.PLAYING, GameState.DEAD],
-    [GameState.DUNGEON]: [GameState.BATTLE, GameState.EVENT, GameState.PLAYING, GameState.DEAD],
-    [GameState.EVENT]: [GameState.PLAYING, GameState.DUNGEON],
+    [GameState.DUNGEON]: [
+        GameState.BATTLE, GameState.EVENT, GameState.PLAYING,
+        GameState.CULTIVATING, GameState.TRIBULATION, GameState.DEAD
+    ],
+    // 随机事件面板可能被玩家搁置，同样不应阻塞其他玩法
+    [GameState.EVENT]: [
+        GameState.PLAYING, GameState.DUNGEON, GameState.BATTLE,
+        GameState.TRIBULATION, GameState.CULTIVATING, GameState.DEAD
+    ],
     [GameState.DEAD]: [GameState.HOME, GameState.PLAYING]
 };
 

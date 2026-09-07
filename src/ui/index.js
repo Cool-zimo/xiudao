@@ -22,6 +22,9 @@ export class UI {
         this.currentEvent = null;
         this.panelMode = 'none';     // none | methods | dungeon | event | tribulation
 
+        // 日志队列必须在首次 render 前初始化（render → renderLog 会读它）
+        this.logs = [];
+
         this.hud = new HUD(dom.hud, game, { onAction: a => this.handleAction(a) });
         this.dungeonMap = new DungeonMap(dom.panel, {
             onNodeClick: () => this.advanceDungeon()
@@ -299,7 +302,11 @@ export class UI {
     }
 
     renderLog() {
-        return `<div class="log-panel">${this.logs.map(l =>
+        const logs = this.logs || [];
+        if (!logs.length) {
+            return `<div class="log-panel"><div class="log-line normal">道途已启，点击左侧按钮开始修行。</div></div>`;
+        }
+        return `<div class="log-panel">${logs.map(l =>
             `<div class="log-line ${l.type}">${this._esc(l.text)}</div>`
         ).join('')}</div>`;
     }
