@@ -93,6 +93,9 @@ const EvilCultivation = {
         
         const result = Game.gainExperience(expGain);
         
+        // 记录吞噬魂魄数（成就统计）
+        Achievements.recordStat(player, 'soulsDevoured', soulCount);
+        
         // 记录吞噬历史
         if (!player.evilCultivation.devourHistory) {
             player.evilCultivation.devourHistory = [];

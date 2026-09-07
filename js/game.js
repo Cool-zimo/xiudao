@@ -340,6 +340,8 @@ const Game = {
                 
                 if (this.player) {
                     this.player.metadata.playTime = this.state.playTime;
+                    // 同步成就统计的游戏时长（每秒累加）
+                    Achievements.recordStat(this.player, 'playTime', 1);
                 }
                 
                 // 每5分钟自动保存

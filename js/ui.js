@@ -321,6 +321,9 @@ const UI = {
         
         const result = Game.gainExperience(totalExp);
         
+        // 记录修炼次数（成就统计）
+        Achievements.recordStat(Game.player, 'totalCultivations');
+        
         this.addLog(`🧘 你打坐修炼，获得了${totalExp}点修为`, Utils.LogType.NORMAL);
         
         if (result.leveledUp) {
@@ -474,6 +477,9 @@ const UI = {
         const expGain = monster.expReward;
         const result = Game.gainExperience(expGain);
         
+        // 记录战斗胜利次数（成就统计）
+        Achievements.recordStat(Game.player, 'battlesWon');
+        
         this.addCombatLog(`获得${expGain}点修为`, Utils.LogType.REWARD);
         
         // 邪修获得魂魄
@@ -511,6 +517,9 @@ const UI = {
      */
     defeat() {
         this.addCombatLog('💀 你被击败了...', Utils.LogType.DANGER);
+        
+        // 记录战斗失败次数（成就统计）
+        Achievements.recordStat(Game.player, 'battlesLost');
         
         // 惩罚：损失部分修为
         const expLoss = Math.floor(Game.player.cultivation.experience * 0.1);

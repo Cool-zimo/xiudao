@@ -195,6 +195,9 @@ const Forge = {
             // 生成产物
             const products = this.generateProducts(recipe.products);
             
+            // 记录炼丹次数（成就统计）
+            Achievements.recordStat(player, 'pillsMade');
+            
             // 添加到背包
             products.forEach(product => {
                 Game.addItem(product);
@@ -248,6 +251,9 @@ const Forge = {
         if (success) {
             // 生成产物
             const products = this.generateProducts(recipe.products);
+            
+            // 记录炼器次数（成就统计）
+            Achievements.recordStat(player, 'itemsForged');
             
             // 添加到背包
             products.forEach(product => {

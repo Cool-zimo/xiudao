@@ -9,51 +9,119 @@ const Cultivation = {
      * @param {Object} player - 玩家数据
      * @returns {Object} 渡劫结果
      */
+    /**
+     * 渡劫系统（通用版）
+     * 任意境界达到 Lv10 圆满后均可渡劫，成功则晋升下一境界
+     * 难度随境界递增，并受幸运、邪修业障影响
+     * @param {Object} player - 玩家数据
+     * @returns {Object} 渡劫结果
+     */
     attemptTribulation(player) {
-        if (!player || player.cultivation.realm !== '筑基期' || player.cultivation.level !== 10) {
-            return { 
-                success: false, 
-                reason: '只有筑基期Lv10才能渡劫' 
-            };
+        if (!player || !player.cultivation) {
+            return { success: false, reason: '无角色数据' };
         }
-        
-        // 渡劫成功率计算
-        const baseChance = 0.6; // 基础60%成功率
-        const luckBonus = (player.attributes.luck - 10) * 0.01; // 幸运加成
-        const finalChance = Math.min(0.9, baseChance + luckBonus);
-        
-        const success = Utils.chance(finalChance);
-        
-        if (success) {
-            // 渡劫成功
-            player.cultivation.realmIndex = 2;
-            player.cultivation.realm = '结丹期';
-            player.cultivation.level = 1;
-            player.cultivation.experience = 0;
-            
-            // 属性大幅提升
-            Game.boostAttributesForRealm();
-            
-            return {
-                success: true,
-                message: '🎉 渡劫成功！晋升至【结丹期】！',
-                type: 'success'
-            };
-        } else {
-            // 渡劫失败
-            const expLoss = Math.floor(player.cultivation.expToNext * 0.3);
-            player.cultivation.experience = Math.max(0, player.cultivation.experience - expLoss);
-            
-            // HP降至1
-            player.attributes.hp = 1;
-            
+
+        const realms = Game.config.realms;
+        const cur = player.cultivation;
+
+        // 必须当前境界 Lv10 圆满
+        if (cur.level < 10) {
             return {
                 success: false,
-                message: `💥 渡劫失败！修为受损，损失${expLoss}点修为`,
-                type: 'failure',
-                expLoss: expLoss
+                reason: `需达到【${cur.realm}】Lv10圆满方可渡劫`
             };
         }
+
+        // 已至最高境界
+        if (cur.realmIndex >= realms.length - 1) {
+            return {
+                success: false,
+                reason: `已臻【${cur.realm}】极致，前路需自行证道`
+            };
+        }
+
+        const nextRealm = realms[cur.realmIndex + 1];
+        const info = this.getTribulationInfo(player);
+        const success = Utils.chance(info.chance);
+
+        if (success) {
+            // 渡劫成功：晋升下一境界
+            cur.realmIndex += 1;
+            cur.realm = nextRealm.name;
+            cur.level = 1;
+            cur.experience = 0;
+
+            // 关键修复：原版晋升后未重算升级所需经验，导致沿用旧境界数值
+            Game.updateExpToNext();
+
+            // 属性大幅提升
+            Game.boostAttributesForRealm();
+
+            return {
+                success: true,
+                message: `🎉 渡劫成功！晋升至【${cur.realm}】！`,
+                type: 'success',
+                newRealm: cur.realm,
+                chance: info.chance
+            };
+        } else {
+            // 渡劫失败：天劫反噬
+            const expLoss = Math.floor(cur.expToNext * 0.3);
+            cur.experience = Math.max(0, cur.experience - expLoss);
+
+            // HP降至1
+            player.attributes.hp = 1;
+
+            return {
+                success: false,
+                message: `💥 渡劫失败！天劫反噬，损失${expLoss}点修为`,
+                type: 'failure',
+                expLoss: expLoss,
+                chance: info.chance
+            };
+        }
+    },
+
+    /**
+     * 判断当前是否可渡劫
+     * @param {Object} player - 玩家数据
+     * @returns {boolean}
+     */
+    canAttemptTribulation(player) {
+        if (!player || !player.cultivation) return false;
+        const cur = player.cultivation;
+        return cur.level >= 10 && cur.realmIndex < Game.config.realms.length - 1;
+    },
+
+    /**
+     * 获取渡劫预览信息（成功率、目标境界、影响因素）
+     * @param {Object} player - 玩家数据
+     * @returns {Object} 预览信息
+     */
+    getTribulationInfo(player) {
+        const realms = Game.config.realms;
+        const cur = player.cultivation;
+
+        // 基础成功率随境界递减：60% 起，每高一境 -8%，下限 15%
+        const baseChance = Math.max(0.15, 0.6 - cur.realmIndex * 0.08);
+        const luckBonus = (player.attributes.luck - 10) * 0.01;
+
+        // 邪修业障：吞噬魂魄越多，天劫越猛（上限 -20%）
+        let karmaPenalty = 0;
+        if (player.faction === '邪修' && player.evilCultivation) {
+            karmaPenalty = Math.min(0.2, (player.evilCultivation.souls || 0) * 0.0005);
+        }
+
+        const chance = Math.max(0.05, Math.min(0.9, baseChance + luckBonus - karmaPenalty));
+
+        return {
+            chance: chance,
+            chancePercent: (chance * 100).toFixed(1),
+            fromRealm: cur.realm,
+            toRealm: realms[cur.realmIndex + 1]?.name || null,
+            luckBonus: luckBonus,
+            karmaPenalty: karmaPenalty
+        };
     },
     
     /**
@@ -148,7 +216,8 @@ const Cultivation = {
         }
         
         const expPercent = (player.cultivation.experience / player.cultivation.expToNext * 100).toFixed(1);
-        return `📈 修炼进度：${expPsi}%，继续修炼以提升境界`;
+        // 修复：原版误用未定义变量 expPsi，导致修炼提示必定抛 ReferenceError
+        return `📈 修炼进度：${expPercent}%，继续修炼以提升境界`;
     }
 };
 

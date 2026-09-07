@@ -62,7 +62,7 @@ const Achievements = {
             rarity: 'rare',
             check: (player) => {
                 const realms = ['练气期', '筑基期', '结丹期', '金丹期', '元婴期', '筠仙期'];
-                return realms.indexOf(player.realm) >= 1;
+                return realms.indexOf(player.cultivation?.realm) >= 1;
             }
         },
         realm_jiedan: {
@@ -73,7 +73,7 @@ const Achievements = {
             rarity: 'epic',
             check: (player) => {
                 const realms = ['练气期', '筑基期', '结丹期', '金丹期', '元婴期', '筠仙期'];
-                return realms.indexOf(player.realm) >= 2;
+                return realms.indexOf(player.cultivation?.realm) >= 2;
             }
         },
         realm_jindan: {
@@ -84,7 +84,7 @@ const Achievements = {
             rarity: 'epic',
             check: (player) => {
                 const realms = ['练气期', '筑基期', '结丹期', '金丹期', '元婴期', '筠仙期'];
-                return realms.indexOf(player.realm) >= 3;
+                return realms.indexOf(player.cultivation?.realm) >= 3;
             }
         },
         realm_yuanying: {
@@ -95,7 +95,7 @@ const Achievements = {
             rarity: 'legendary',
             check: (player) => {
                 const realms = ['练气期', '筑基期', '结丹期', '金丹期', '元婴期', '筠仙期'];
-                return realms.indexOf(player.realm) >= 4;
+                return realms.indexOf(player.cultivation?.realm) >= 4;
             }
         },
         first_forge: {
@@ -147,7 +147,8 @@ const Achievements = {
             desc: '选择邪修阵营',
             icon: '😈',
             rarity: 'rare',
-            check: (player) => player.faction === 'evil'
+            // 注意：阵营实际取值为 '正道' / '邪修'，此前误判 'evil' 导致该成就永不可解锁
+            check: (player) => player.faction === '邪修'
         },
         first_soul: {
             id: 'first_soul',
