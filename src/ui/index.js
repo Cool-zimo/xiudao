@@ -25,6 +25,9 @@ export class UI {
         // 日志队列必须在首次 render 前初始化（render → renderLog 会读它）
         this.logs = [];
 
+        /** 待决断事件（如走火入魔）；为真时阻塞所有推进类操作 */
+        this.pendingDeviation = false;
+
         this.hud = new HUD(dom.hud, game, { onAction: a => this.handleAction(a) });
         this.dungeonMap = new DungeonMap(dom.panel, {
             onNodeClick: () => this.advanceDungeon()
@@ -121,6 +124,13 @@ export class UI {
             case 'event': this.renderEvent(); this.clearScene(); break;
             case 'tribulation': this.setScene('tribulation'); break;
             case 'cultivating': this.setScene('cultivate'); break;
+            case 'deviation':
+                // 保持弹窗不被其他事件触发的 render 覆盖
+                if (!this.dom.panel.querySelector('.deviation-box')) {
+                    this.showDeviationChoice();
+                }
+                this.clearScene();
+                break;
             default: this.dom.panel.innerHTML = this.renderLog(); this.clearScene(); break;
         }
     }
@@ -129,6 +139,14 @@ export class UI {
     handleAction(action) {
         const p = this.game.state.player;
         if (!p) return;
+
+        // 兜底拦截：即使按钮被绕过（键盘、脚本），待决断期间也不允许推进游戏
+        const ADVANCE_ACTIONS = ['cultivate', 'tribulation', 'dungeon', 'event', 'forbidden'];
+        if (this.pendingDeviation && ADVANCE_ACTIONS.includes(action)) {
+            this.log('🔥 真气逆冲未平，先化解走火入魔！', 'danger');
+            this._flashDeviationWarning();
+            return;
+        }
 
         switch (action) {
             case 'cultivate': {
@@ -173,9 +191,36 @@ export class UI {
         }
     }
 
+    /**
+     * 待决断期间被强制操作时，在弹窗上给出可见反馈
+     * （面板当前被弹窗占用，日志看不到，所以直接闪一下提示）
+     */
+    _flashDeviationWarning() {
+        const box = this.dom.panel?.querySelector('.deviation-box');
+        if (!box) { this.showDeviationChoice(); return; }
+
+        let tip = box.querySelector('.deviation-warn');
+        if (!tip) {
+            tip = document.createElement('div');
+            tip.className = 'deviation-warn';
+            box.appendChild(tip);
+        }
+        tip.textContent = '🔥 真气逆冲未平，先做出决断！';
+        tip.classList.remove('shake');
+        void tip.offsetWidth;          // 强制重排，使动画可重复触发
+        tip.classList.add('shake');
+    }
+
     /** 走火入魔化解抉择 */
     showDeviationChoice() {
         const options = ['强压魔念（风险高，收益高）', '散功重修（稳妥）', '顺势而为（心魔大涨，力量提升）'];
+
+        // 锁定推进类操作：真气逆冲期间不能继续修炼/渡劫/下秘境
+        this.pendingDeviation = true;
+        this.hud?.setBlocked(true, '走火入魔未化解，无法继续修炼或历练');
+        this.panelMode = 'deviation';
+        this.hud?.render();
+
         this.dom.panel.innerHTML = `
             <div class="deviation-box">
                 <h3>🔥 走火入魔！</h3>
@@ -183,11 +228,17 @@ export class UI {
                 ${options.map((o, i) =>
                     `<button class="deviation-opt" data-choice="${i}">${o}</button>`
                 ).join('')}
+                <p class="deviation-lock">⚠️ 未化解前无法修炼、渡劫或历练</p>
             </div>
         `;
         this.dom.panel.querySelectorAll('.deviation-opt').forEach(btn => {
             btn.addEventListener('click', () => {
                 const res = this.game.resolveDeviation(parseInt(btn.dataset.choice, 10));
+
+                // 解除锁定
+                this.pendingDeviation = false;
+                this.hud?.setBlocked(false);
+
                 this.log(
                     res.success
                         ? `✅ ${res.optionName}成功，化解魔念（损失 ${res.hpLoss} 生命）`

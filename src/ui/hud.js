@@ -10,6 +10,14 @@ export class HUD {
         this.container = container;
         this.game = game;
         this.onAction = opts.onAction || (() => {});
+        /** 由上层设置：存在待决断事件（如走火入魔）时，阻塞推进类操作 */
+        this.blocked = false;
+        this.blockReason = '';
+    }
+
+    setBlocked(flag, reason = '') {
+        this.blocked = !!flag;
+        this.blockReason = reason;
     }
 
     render() {
@@ -24,6 +32,12 @@ export class HUD {
         const tier = this.game.karma.getTier(p.karma);
         const canTribulate = this.game.tribulation.canAttempt(p);
         const relics = p.relics || [];
+
+        // 待决断期间：阻塞所有推进类操作（修炼/渡劫/秘境/机缘/禁忌），
+        // 仅保留功法、诵经这类不改变游戏进程的操作
+        const lock = this.blocked
+            ? `disabled title="${this._esc(this.blockReason || '请先完成当前决断')}"`
+            : '';
 
         const expPercent = Math.min(100, (c.experience / c.expToNext * 100));
         const levelPercent = ((c.level - 1) / Math.max(1, c.maxLevel - 1)) * 100;
@@ -88,14 +102,18 @@ export class HUD {
                     </div>` : ''}
 
                 <div class="hud-actions">
-                    <button data-action="cultivate">🧘 修炼</button>
-                    <button data-action="tribulation" ${canTribulate ? '' : 'disabled'}>⚡ 渡劫</button>
-                    <button data-action="dungeon">🗺️ 秘境</button>
-                    <button data-action="event">❓ 机缘</button>
+                    <button data-action="cultivate" ${this.blocked ? lock : ''}>🧘 修炼</button>
+                    <button data-action="tribulation"
+                        ${!canTribulate ? 'disabled' : (this.blocked ? lock : '')}>⚡ 渡劫</button>
+                    <button data-action="dungeon" ${this.blocked ? lock : ''}>🗺️ 秘境</button>
+                    <button data-action="event" ${this.blocked ? lock : ''}>❓ 机缘</button>
                     <button data-action="methods">📖 功法</button>
                     <button data-action="purify">📿 诵经</button>
-                    ${p.karma >= 20 ? '<button data-action="forbidden">🔮 禁忌</button>' : ''}
+                    ${p.karma >= 20 ? `<button data-action="forbidden" ${this.blocked ? lock : ''}>🔮 禁忌</button>` : ''}
                 </div>
+                ${this.blocked ? `
+                    <div class="hud-block-tip">⚠️ ${this._esc(this.blockReason || '请先完成当前决断')}</div>
+                ` : ''}
             </div>
         `;
         this.container.innerHTML = html;
