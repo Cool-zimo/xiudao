@@ -8,6 +8,8 @@ import { GameState } from '../core/store.js';
 import { RNG } from '../core/rng.js';
 import { SCENES, preloadArt } from './art.js';
 import { World } from '../systems/world.js';
+import { TimeSystem } from '../systems/time.js';
+import { NPCSystem } from '../systems/npc.js';
 import { RES_DEFS, tileDef } from '../data/terrain.js';
 
 /**
@@ -45,6 +47,12 @@ export class UI {
             ? this._hashSeed(game.state.player.metadata.createTime)
             : 20240907;
         this.world = new World(new RNG(seed));
+
+        // P2：时间流转 + NPC 与门派（让世界自己活起来）
+        this.time = new TimeSystem(1, 6);
+        this.npcSystem = new NPCSystem(this.world, new RNG(seed + 1), this.time);
+        this.npcSystem.populate({ npcCount: 24, sectCount: 3 });
+
         this.worldCanvas = null;
 
         this._subscribe();
@@ -233,14 +241,33 @@ export class UI {
 
         this.worldCanvas = new WorldCanvas(this.dom.panel, this.world, {
             onTileInfo: (x, y, act) => this.handleWorldTile(x, y, act),
-            onMove: (r) => this.handleWorldMove(r)
+            onMove: (r) => this.handleWorldMove(r),
+            npcSystem: this.npcSystem,
+            time: this.time
         });
+        this.worldCanvas.playerKarma = this.game.state.player?.karma ?? 0;
+        // 玩家在世界中的坐标（NPC 寻仇用）
+        const p = this.game.state.player;
+        if (p) { p.worldX = this._spawn.x; p.worldY = this._spawn.y; }
         this.worldCanvas.setPlayer(this._spawn.x, this._spawn.y);
     }
 
-    /** 移动一格：妖兽林按危险度触发遭遇 */
+    /** 移动一格：推进世界时间 + NPC 行动 + 妖兽遭遇 */
     handleWorldMove(r) {
         if (!r.ok) { this.log(`🚫 ${r.reason}`, 'normal'); return; }
+
+        const p = this.game.state.player;
+        // 玩家坐标同步给 NPC 系统（寻仇 / 遭遇判定用）
+        if (p) { p.worldX = r.x; p.worldY = r.y; }
+
+        // 世界推进一个刻：时间流逝 + 全体 NPC 决策一次
+        this.npcSystem.tick(p);
+
+        // 玩家所在格若有 NPC，触发交互
+        const here = this.npcSystem.npcAt(r.x, r.y);
+        if (here) {
+            this.log(`👤 ${here.name}${here.sectId ? `（${this.npcSystem.sects.get(here.sectId)?.name}）` : '散修'} — ${here.lastThought || '在此修行'}`, 'info');
+        }
 
         const def = tileDef(r.tile);
         // 妖兽林：按 danger 概率遭遇
@@ -282,7 +309,9 @@ export class UI {
             if (p.attributes.hp <= 1) {
                 this.log('💀 险些殒命，勉强逃回山门', 'danger');
                 const s = this.world.sectRect;
-                this.worldCanvas.setPlayer(s.x + Math.floor(s.w / 2), s.y + Math.floor(s.h / 2));
+                const hx = s.x + Math.floor(s.w / 2), hy = s.y + Math.floor(s.h / 2);
+                this.worldCanvas.setPlayer(hx, hy);
+                if (p) { p.worldX = hx; p.worldY = hy; }
             }
         }
         this.hud.render();

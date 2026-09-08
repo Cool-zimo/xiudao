@@ -62,6 +62,19 @@ if (worldBtn) {
     const legend = nodes['panel-container'].querySelectorAll('.wc-lg');
     check('图例列出全部 7 种地形', legend.length === 7, `${legend.length} 条`);
 
+    console.log('\n【P2：时间与 NPC】');
+    check('工具栏含「天下事」入口', html.includes('天下事'));
+    const timeEl = nodes['panel-container'].querySelector('#wc-time');
+    check('时间显示已渲染', !!timeEl);
+    check('时间文本含日期与时辰', /第 \d+ 日 · \S+时/.test(timeEl?.textContent || ''), timeEl?.textContent);
+    check('时间文本含修炼系数', /修炼 ×/.test(timeEl?.textContent || ''), timeEl?.textContent);
+
+    const chron = nodes['panel-container'].querySelector('#wc-chronicle');
+    check('编年史面板存在', !!chron);
+    const sumEl = nodes['panel-container'].querySelector('#wcc-summary');
+    check('编年史含世界概览', /在世 \d+ 人/.test(sumEl?.textContent || ''), sumEl?.textContent);
+    check('概览含 3 个门派', (sumEl?.textContent || '').split('·').length >= 3, sumEl?.textContent);
+
     console.log('\n【地图状态】');
     const posText = nodes['panel-container'].querySelector('#wc-pos')?.textContent || '';
     check('位置信息已显示', posText.includes('灵气') && posText.includes('('), posText);

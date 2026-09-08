@@ -1,5 +1,7 @@
 import { TILE, TILE_DEFS, TILE_IMGS, RES_DEFS, tileDef } from '../data/terrain.js';
 import { World, TILE_PX } from '../systems/world.js';
+import { TimeSystem } from '../systems/time.js';
+import { NPCSystem } from '../systems/npc.js';
 
 /**
  * 世界地图渲染（Canvas）
@@ -18,7 +20,8 @@ export class WorldCanvas {
         this.onMove = opts.onMove || (() => { });
 
         this.tilePx = TILE_PX;
-        this.viewCols = opts.viewCols || 15;    // 视口可见格数
+        // 72px 一格，视口 11 格 ≈ 792px，兼顾清晰度与一屏能看到的地形范围
+        this.viewCols = opts.viewCols || 11;
         this.zoom = opts.zoom || 1;
 
         this.camX = 0;      // 视口左上角对应的世界格坐标（可为小数，用于平滑）
@@ -28,6 +31,10 @@ export class WorldCanvas {
         this.showQi = false;
         this.images = new Map();
         this.loaded = false;
+
+        /** 外部注入：NPC 系统与时间系统（P2 动态世界） */
+        this.npcSystem = opts.npcSystem || null;
+        this.time = opts.time || null;
 
         this._build();
     }
@@ -39,6 +46,8 @@ export class WorldCanvas {
                 <div class="wc-toolbar">
                     <button class="wc-btn" data-act="qi">🌫️ 灵气图</button>
                     <button class="wc-btn" data-act="legend">🗺️ 图例</button>
+                    <button class="wc-btn" data-act="chronicle">📜 天下事</button>
+                    <span class="wc-time" id="wc-time">—</span>
                     <span class="wc-pos" id="wc-pos">—</span>
                     <span class="wc-hint">方向键 / WASD 移动 · 空格采集</span>
                 </div>
@@ -51,6 +60,14 @@ export class WorldCanvas {
                             <span>灵气 ${d.qi}${d.walk ? '' : ' · 不可通行'}</span>
                         </div>
                     `).join('')}
+                </div>
+
+                <div class="wc-chronicle hidden" id="wc-chronicle">
+                    <div class="wcc-head">
+                        <b>📜 天下大事记</b>
+                        <span id="wcc-summary"></span>
+                    </div>
+                    <div class="wcc-list" id="wcc-list"></div>
                 </div>
             </div>
         `;
@@ -67,6 +84,9 @@ export class WorldCanvas {
         });
         this.container.querySelector('[data-act="legend"]')?.addEventListener('click', () => {
             this.container.querySelector('#wc-legend')?.classList.toggle('hidden');
+        });
+        this.container.querySelector('[data-act="chronicle"]')?.addEventListener('click', () => {
+            this.container.querySelector('#wc-chronicle')?.classList.toggle('hidden');
         });
 
         this._loadImages().then(() => {
@@ -115,10 +135,8 @@ export class WorldCanvas {
                     c.fillStyle = tileDef(tile).color;
                     c.fillRect(x * t, y * t, t, t);
                 }
-                // 网格线（极淡，帮助定位）
-                c.strokeStyle = 'rgba(0,0,0,.10)';
-                c.lineWidth = 1;
-                c.strokeRect(x * t + .5, y * t + .5, t, t);
+                // 不再画生硬网格线：靠瓦片自身的明暗层次区分地块，
+                // 只在地块四角点一个极淡的定位点，避免整体显得廉价
             }
         }
         this.offscreen = off;
@@ -254,7 +272,59 @@ export class WorldCanvas {
             ctx.fillRect(sx(bx) + t * 0.42, sy(by) + t * 0.5, t * 0.16, t * 0.2);
         }
 
-        // 5. 视口边框
+        // 4.5 NPC（P2 动态世界）
+        if (this.npcSystem) {
+            for (const n of this.npcSystem.npcs.values()) {
+                if (!n.alive) continue;
+                if (n.x < this.camX - 1 || n.y < this.camY - 1 ||
+                    n.x > this.camX + this.viewCols || n.y > this.camY + this.viewCols) continue;
+                const cx = sx(n.x) + t / 2, cy = sy(n.y) + t / 2;
+                const col = n.def.color;
+
+                // 外圈（邪修用红光示警）
+                ctx.beginPath();
+                ctx.arc(cx, cy, t * 0.24, 0, Math.PI * 2);
+                ctx.fillStyle = col;
+                ctx.globalAlpha = 0.25;
+                ctx.fill();
+                ctx.globalAlpha = 1;
+
+                // 本体
+                ctx.beginPath();
+                ctx.arc(cx, cy, t * 0.15, 0, Math.PI * 2);
+                ctx.fillStyle = col;
+                ctx.fill();
+                ctx.lineWidth = 1.5;
+                ctx.strokeStyle = n.isEvil ? '#7f1d1d' : '#0f172a';
+                ctx.stroke();
+
+                // 宗门弟子加个小标记
+                if (n.sectId) {
+                    ctx.fillStyle = '#f8fafc';
+                    ctx.beginPath();
+                    ctx.arc(cx, cy, t * 0.05, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            }
+        }
+
+        // 5. 昼夜滤镜
+        if (this.time) {
+            const d = this.time.daylight();
+            // d=1 白天无滤镜；d=0 夜晚深蓝压暗
+            const dark = 1 - d;
+            if (dark > 0.02) {
+                ctx.fillStyle = `rgba(15,23,66,${dark * 0.55})`;
+                ctx.fillRect(0, 0, this.vw, this.vw);
+            }
+            // 黄昏/黎明暖色调
+            if (d > 0.05 && d < 0.6) {
+                ctx.fillStyle = `rgba(251,146,60,${(1 - Math.abs(d - 0.3)) * 0.10})`;
+                ctx.fillRect(0, 0, this.vw, this.vw);
+            }
+        }
+
+        // 6. 视口边框
         ctx.strokeStyle = 'rgba(148,163,184,.25)';
         ctx.lineWidth = 2;
         ctx.strokeRect(1, 1, this.vw - 2, this.vw - 2);
@@ -297,6 +367,41 @@ export class WorldCanvas {
             const q = this.world.qiAt(this.player.x, this.player.y);
             pos.textContent = `(${this.player.x}, ${this.player.y}) · ${tileDef(this.world.get(this.player.x, this.player.y)).name} · 灵气 ${q}`;
         }
+
+        // 8. 时间与编年史
+        if (this.time) {
+            const tEl = this.container.querySelector('#wc-time');
+            if (tEl) {
+                const s = this.time.shichen();
+                const sea = this.time.season();
+                const mul = this.time.cultivationMul(
+                    this.playerKarma ?? 0);
+                tEl.textContent = `${this.time.display()} · 修炼 ×${mul}`;
+                tEl.title = `${s.name}｜${sea.desc}`;
+            }
+        }
+        this._renderChronicle();
+    }
+
+    /** 渲染天下大事记 */
+    _renderChronicle() {
+        if (!this.npcSystem) return;
+        const list = this.container.querySelector('#wcc-list');
+        const sum = this.container.querySelector('#wcc-summary');
+        if (!list) return;
+
+        const s = this.npcSystem.summary();
+        if (sum) {
+            const sectTxt = Object.entries(s.sects)
+                .map(([n, v]) => `${n} ${v.members}人`)
+                .join(' · ');
+            sum.textContent = `在世 ${s.alive} 人 · 陨落 ${s.dead} 人 ｜ ${sectTxt}`;
+        }
+        list.innerHTML = s.chronicle.length
+            ? s.chronicle.map(c =>
+                `<div class="wcc-item"><span class="wcc-at">${c.at}</span>${c.text}</div>`
+            ).join('')
+            : '<div class="wcc-empty">天下暂无大事</div>';
     }
 
     destroy() {

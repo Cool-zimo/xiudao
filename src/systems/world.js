@@ -17,7 +17,7 @@ import { TILE, TILE_DEFS, RES, tileDef } from '../data/terrain.js';
  */
 
 export const WORLD_SIZE = 48;
-const TILE_PX = 48;
+const TILE_PX = 72;   // 一格 72px：瓦片贴图 256px 缩到 72px 显示，细节充分保留
 
 export class World {
     constructor(rng) {
