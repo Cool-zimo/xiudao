@@ -1,5 +1,5 @@
 import { TILE, TILE_DEFS, TILE_IMGS, RES_DEFS, tileDef } from '../data/terrain.js';
-import { World, TILE_PX } from '../systems/world.js';
+import { World, TILE_PX, CHUNK_SIZE, CHUNKS_PER_SIDE } from '../systems/world.js';
 import { TimeSystem } from '../systems/time.js';
 import { NPCSystem } from '../systems/npc.js';
 
@@ -59,6 +59,11 @@ export class WorldCanvas {
         this._raf = null;
         this._lastFrame = 0;
 
+        /** P3：小地图（迷雾：只显示走过的区块） */
+        this.minimap = null;
+        this.minimapBg = null;
+        this.showMinimap = true;
+
         /** P3：御剑飞行 */
         this.flying = false;
         this.flyCost = 2;           // 每步灵力消耗
@@ -80,6 +85,7 @@ export class WorldCanvas {
                     <button class="wc-btn" data-act="qi">🌫️ 灵气图</button>
                     <button class="wc-btn" data-act="legend">🗺️ 图例</button>
                     <button class="wc-btn" data-act="chronicle">📜 天下事</button>
+                    <button class="wc-btn on" data-act="minimap">🗺️ 舆图</button>
                     <button class="wc-btn" data-act="fly" id="wc-fly" title="消耗灵力快速移动，可跨越云海">🗡️ 御剑</button>
                     <span class="wc-time" id="wc-time">—</span>
                     <span class="wc-pos" id="wc-pos">—</span>
@@ -88,6 +94,11 @@ export class WorldCanvas {
                 <div class="wc-stage">
                     <canvas class="wc-canvas" width="${vw}" height="${vw}"></canvas>
                     <div class="wc-loading" id="wc-loading">地图生成中…</div>
+                    <div class="wc-minimap" id="wc-minimap">
+                        <canvas width="${this.world.size}" height="${this.world.size}"></canvas>
+                        <span class="wcm-label">天下舆图</span>
+                    </div>
+                    <div class="wc-chunkinfo" id="wc-chunkinfo">—</div>
                 </div>
 
                 <!-- 触控操作区：方向键 + 功能键 -->
@@ -141,6 +152,12 @@ export class WorldCanvas {
         this.container.querySelector('[data-act="chronicle"]')?.addEventListener('click', () => {
             this.container.querySelector('#wc-chronicle')?.classList.toggle('hidden');
         });
+        this.container.querySelector('[data-act="minimap"]')?.addEventListener('click', (e) => {
+            this.showMinimap = !this.showMinimap;
+            e.target.classList.toggle('on', this.showMinimap);
+            this.container.querySelector('#wc-minimap')?.classList.toggle('hidden', !this.showMinimap);
+            this.container.querySelector('#wc-chunkinfo')?.classList.toggle('hidden', !this.showMinimap);
+        });
         this.container.querySelector('[data-act="harvest"]')?.addEventListener('click', () => {
             this.onTileInfo(this.player.x, this.player.y, 'harvest');
         });
@@ -155,7 +172,8 @@ export class WorldCanvas {
 
         this._loadImages().then(() => {
             this.loaded = true;
-            this._prerender();
+            this._prepareTiles();
+            this._initMinimap();
             this.container.querySelector('#wc-loading')?.classList.add('done');
             this.render();
         });
@@ -183,27 +201,45 @@ export class WorldCanvas {
         return Promise.all(tasks);
     }
 
-    _prerender() {
-        const N = this.world.size;
+    /**
+     * 瓦片预缩放
+     * 256×256 的地图不可能整图预渲染（18432px canvas ≈ 1.3GB 显存），
+     * 改为把每张 256px 瓦片缩放到格子尺寸一次，
+     * 之后每帧 drawImage 都是 1:1 拷贝 —— 最快路径。
+     */
+    _prepareTiles() {
         const t = this.tilePx;
-        const off = document.createElement('canvas');
-        off.width = N * t;
-        off.height = N * t;
-        const c = off.getContext('2d');
+        this.tileCache = new Map();
+        for (const [k, img] of this.images) {
+            if (!img.width) continue;
+            const c = document.createElement('canvas');
+            c.width = t; c.height = t;
+            const g = c.getContext('2d');
+            if (g) g.drawImage(img, 0, 0, t, t);
+            this.tileCache.set(k, c);
+        }
+    }
 
-        for (let y = 0; y < N; y++) {
-            for (let x = 0; x < N; x++) {
+    /** 画视口内的地形（只画可见格，取代整图预渲染） */
+    _drawTerrain(ctx, sx, sy) {
+        const t = this.tilePx;
+        const c0 = Math.floor(this.camX) - 1;
+        const c1 = Math.ceil(this.camX + this.viewCols) + 1;
+        const r0 = Math.floor(this.camY) - 1;
+        const r1 = Math.ceil(this.camY + this.viewCols) + 1;
+
+        for (let y = Math.max(0, r0); y <= Math.min(this.world.size - 1, r1); y++) {
+            for (let x = Math.max(0, c0); x <= Math.min(this.world.size - 1, c1); x++) {
                 const tile = this.world.get(x, y);
-                const img = this.images.get(tile);
-                if (img && img.width) {
-                    c.drawImage(img, x * t, y * t, t, t);
+                const img = this.tileCache?.get(tile);
+                if (img) {
+                    ctx.drawImage(img, sx(x), sy(y));
                 } else {
-                    c.fillStyle = tileDef(tile).color;
-                    c.fillRect(x * t, y * t, t, t);
+                    ctx.fillStyle = tileDef(tile).color;
+                    ctx.fillRect(sx(x), sy(y), t, t);
                 }
             }
         }
-        this.offscreen = off;
     }
 
     // ---------- 输入 ----------
@@ -250,6 +286,10 @@ export class WorldCanvas {
             btn.addEventListener('mouseleave', end);
             // 阻止长按弹出系统菜单
             btn.addEventListener('contextmenu', e => e.preventDefault());
+        });
+
+        this.container.querySelector('#wc-minimap canvas')?.addEventListener('click', (e) => {
+            this._onMinimapClick(e);
         });
 
         // 点击地图 → 优先交互 NPC，其次自动寻路
@@ -522,16 +562,16 @@ export class WorldCanvas {
         const ox = -this.camX * t;
         const oy = -this.camY * t;
 
-        // 1. 地图底图
-        if (this.offscreen) {
-            ctx.drawImage(this.offscreen, ox, oy);
+        const sx = (wx) => (wx - this.camX) * t;
+        const sy = (wy) => (wy - this.camY) * t;
+
+        // 1. 地图底图：只画视口内的格子
+        if (this.tileCache) {
+            this._drawTerrain(ctx, sx, sy);
         } else {
             ctx.fillStyle = '#1e293b';
             ctx.fillRect(0, 0, this.vw, this.vw);
         }
-
-        const sx = (wx) => (wx - this.camX) * t;
-        const sy = (wy) => (wy - this.camY) * t;
 
         // 2. 灵气热力图
         if (this.showQi) {
@@ -548,21 +588,26 @@ export class WorldCanvas {
             }
         }
 
-        // 3. 资源图标
+        // 3. 资源图标：只扫描视口，不再遍历整张资源表
         const half = t * 0.32;
-        for (const [key, r] of this.world.resources) {
-            const [rx, ry] = key.split(',').map(Number);
-            if (rx < this.camX - 1 || ry < this.camY - 1 ||
-                rx > this.camX + this.viewCols || ry > this.camY + this.viewCols) continue;
-            const img = this.images.get(r.type);
-            const cx = sx(rx) + t / 2, cy = sy(ry) + t / 2;
-            if (img && img.width) {
-                ctx.drawImage(img, cx - half, cy - half, half * 2, half * 2);
-            } else {
-                ctx.fillStyle = r.type === 'herb' ? '#4ade80' : '#c084fc';
-                ctx.beginPath();
-                ctx.arc(cx, cy, 6, 0, Math.PI * 2);
-                ctx.fill();
+        const rc0 = Math.max(0, Math.floor(this.camX) - 1);
+        const rc1 = Math.min(this.world.size - 1, Math.ceil(this.camX + this.viewCols) + 1);
+        const rr0 = Math.max(0, Math.floor(this.camY) - 1);
+        const rr1 = Math.min(this.world.size - 1, Math.ceil(this.camY + this.viewCols) + 1);
+        for (let ry = rr0; ry <= rr1; ry++) {
+            for (let rx = rc0; rx <= rc1; rx++) {
+                const r = this.world.resourceAt(rx, ry);
+                if (!r) continue;
+                const img = this.images.get(r.type);
+                const cx = sx(rx) + t / 2, cy = sy(ry) + t / 2;
+                if (img && img.width) {
+                    ctx.drawImage(img, cx - half, cy - half, half * 2, half * 2);
+                } else {
+                    ctx.fillStyle = r.type === 'herb' ? '#4ade80' : '#c084fc';
+                    ctx.beginPath();
+                    ctx.arc(cx, cy, 6, 0, Math.PI * 2);
+                    ctx.fill();
+                }
             }
         }
 
@@ -703,6 +748,7 @@ export class WorldCanvas {
             }
         }
         this._renderChronicle();
+        this._updateMinimap();
     }
 
     _renderChronicle() {
@@ -725,6 +771,120 @@ export class WorldCanvas {
             ? s.chronicle.map(c =>
                 `<div class="wcc-item"><span class="wcc-at">${c.at}</span>${c.text}</div>`).join('')
             : '<div class="wcc-empty">天下暂无大事</div>';
+    }
+
+
+    // ---------- 小地图（迷雾） ----------
+
+    /**
+     * 初始化小地图
+     * 底图按区块增量绘制：只有生成过的区块才会被画上去，
+     * 没去过的地方保持暗色 —— 这就是迷雾效果，也避免了
+     * 一次性采样六万格造成的卡顿。
+     */
+    _initMinimap() {
+        const host = this.container.querySelector('#wc-minimap canvas');
+        if (!host) return;
+        this.minimap = host;
+        this.minimapCtx = host.getContext('2d');
+
+        // 底图离屏：与显示尺寸同分辨率（256×256，1 格 1 像素）
+        const bg = document.createElement('canvas');
+        bg.width = this.world.size;
+        bg.height = this.world.size;
+        this.minimapBg = bg;
+        this.minimapBgCtx = bg.getContext('2d');
+
+        const bc = this.minimapBgCtx;
+        if (bc) {
+            bc.fillStyle = '#0b1220';
+            bc.fillRect(0, 0, bg.width, bg.height);
+        }
+
+        // 已探索区块（读档后）需要补画
+        for (const key of this.world.explored) {
+            const [cx, cy] = key.split(',').map(Number);
+            this._paintChunk(cx, cy);
+        }
+        this.world.consumeDirty();
+    }
+
+    /** 把单个区块画到小地图底图（16×16 像素） */
+    _paintChunk(cx, cy) {
+        const bc = this.minimapBgCtx;
+        if (!bc) return;
+        const bx = cx * CHUNK_SIZE, by = cy * CHUNK_SIZE;
+        for (let ly = 0; ly < CHUNK_SIZE; ly++) {
+            for (let lx = 0; lx < CHUNK_SIZE; lx++) {
+                const wx = bx + lx, wy = by + ly;
+                if (!this.world.inBounds(wx, wy)) continue;
+                const t = this.world.get(wx, wy);
+                bc.fillStyle = tileDef(t).color;
+                bc.fillRect(wx, wy, 1, 1);
+            }
+        }
+    }
+
+    /** 增量绘制新生成的区块，然后刷新小地图 */
+    _updateMinimap() {
+        if (!this.minimap || !this.showMinimap) return;
+
+        const dirty = this.world.consumeDirty();
+        if (dirty) {
+            for (const key of dirty) {
+                const [cx, cy] = key.split(',').map(Number);
+                this._paintChunk(cx, cy);
+            }
+        }
+
+        const ctx = this.minimapCtx;
+        const N = this.world.size;
+        if (!ctx) return;
+
+        ctx.clearRect(0, 0, N, N);
+        if (this.minimapBg) ctx.drawImage(this.minimapBg, 0, 0);
+
+        // 玩家（亮点 + 光晕，方便在暗色迷雾中定位）
+        const p = this.player;
+        ctx.fillStyle = 'rgba(250,250,210,.35)';
+        ctx.fillRect(p.x - 3, p.y - 3, 7, 7);
+        ctx.fillStyle = '#fef9c3';
+        ctx.fillRect(p.x - 1, p.y - 1, 3, 3);
+
+        // 宗门（山门）：金框，作为归位参照
+        const S = this.world.sectRect;
+        if (S) {
+            ctx.strokeStyle = '#fbbf24';
+            ctx.lineWidth = 1;
+            ctx.strokeRect(S.x + .5, S.y + .5, S.w, S.h);
+        }
+
+        // 视口框
+        ctx.strokeStyle = 'rgba(148,163,184,.55)';
+        ctx.strokeRect(this.camX + .5, this.camY + .5, this.viewCols, this.viewCols);
+
+        // 区块加载信息
+        const info = this.container.querySelector('#wc-chunkinfo');
+        if (info) {
+            const st = this.world.stats();
+            info.textContent = `区块 ${st.loadedChunks}/${st.totalChunks} · 已探 ${st.explored}`;
+        }
+    }
+
+    /** 点击小地图：若该区块已探索则把镜头移过去（快速跳转） */
+    _onMinimapClick(e) {
+        if (!this.minimap) return;
+        const rect = this.minimap.getBoundingClientRect();
+        if (!rect.width) return;
+        const N = this.world.size;
+        const mx = Math.floor((e.clientX - rect.left) / rect.width * N);
+        const my = Math.floor((e.clientY - rect.top) / rect.height * N);
+        if (!this.world.inBounds(mx, my)) return;
+        // 未探索区域不允许跳转（保持迷雾规则）
+        if (!this.world.isChunkLoaded(mx >> 4, my >> 4)) return;
+        const max = Math.max(0, this.world.size - this.viewCols);
+        this.camTX = Math.max(0, Math.min(max, mx - (this.viewCols >> 1)));
+        this.camTY = Math.max(0, Math.min(max, my - (this.viewCols >> 1)));
     }
 
     destroy() {

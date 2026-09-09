@@ -1,5 +1,6 @@
 import { NPC_KIND, NPC_KIND_DEFS, NPC_SURNAMES, NPC_GIVEN } from '../data/npc.js';
 import { TILE, tileDef } from '../data/terrain.js';
+import { ACTIVE_RADIUS } from './world.js';
 
 /**
  * NPC 与门派系统 —— 效用 AI（Utility AI）
@@ -119,7 +120,7 @@ export class NPCSystem {
     // ---------- 初始化 ----------
 
     /** 生成初始人口与门派 */
-    populate({ npcCount = 24, sectCount = 3 } = {}) {
+    populate({ npcCount = 96, sectCount = 3 } = {}) {
         // 门派
         const sectNames = ['青云宗', '灵霄阁', '血煞门'];
         const doctrines = ['正道', '正道', '邪道'];
@@ -148,8 +149,6 @@ export class NPCSystem {
             const npc = this._makeNPC(kind, spot.x, spot.y, sectId);
             this.npcs.set(npc.id, npc);
             if (sectId) this.sects.get(sectId).members.add(npc.id);
-            this.world.occupied = this.world.occupied || new Set();
-            this.world.occupied.add(`${spot.x},${spot.y}`);
         }
         this._log(`🌍 天下初开，${npcCount} 名修士散落四方，${sectCount} 个宗门并立`);
     }
@@ -178,8 +177,11 @@ export class NPCSystem {
         const w = this.world;
         // 候选：洞府石台 > 灵脉 > 山门 > 任意可通行
         const caves = [], veins = [], plains = [];
-        for (let y = 2; y < w.size - 2; y++) {
-            for (let x = 2; x < w.size - 2; x++) {
+        // 地图扩大到 256×256 后全量遍历会 push 六万多个点，改为采样扫描
+        // （步长为 2 仍足以覆盖所有地形类型，且把遍历量降到四分之一）
+        const STEP = 2;
+        for (let y = 2; y < w.size - 2; y += STEP) {
+            for (let x = 2; x < w.size - 2; x += STEP) {
                 if (!w.walkable(x, y)) continue;
                 const t = w.get(x, y);
                 if (t === TILE.CAVE) caves.push({ x, y });
@@ -187,18 +189,37 @@ export class NPCSystem {
                 else if (t === TILE.PLAIN || t === TILE.ORE) plains.push({ x, y });
             }
         }
-        const pool = [...this.rng.shuffle(caves), ...this.rng.shuffle(veins), ...this.rng.shuffle(plains)];
-        for (const p of pool) {
+        // 256×256 太大，若 NPC 均匀散布则人迹罕至、世界显得死寂。
+        // 所以按「距山门的距离」分层投放：
+        //   前 70% 聚在山门周边（文明区，恩怨情仇都发生在这里）
+        //   后 30% 散落远方，作为玩家探索时的偶遇
+        const S = w.sectRect;
+        const hx = S.x + (S.w >> 1), hy = S.y + (S.h >> 1);
+        const distToHome = (p) => Math.abs(p.x - hx) + Math.abs(p.y - hy);
+
+        const near = [], far = [];
+        const all = [...this.rng.shuffle(caves), ...this.rng.shuffle(veins), ...this.rng.shuffle(plains)];
+        for (const p of all) {
+            (distToHome(p) <= 40 ? near : far).push(p);
+        }
+
+        const nearQuota = Math.ceil(n * 0.7);
+        let picked = 0;
+        for (const p of near) {
+            if (picked >= nearQuota) break;
+            if (spots.some(s => Math.abs(s.x - p.x) + Math.abs(s.y - p.y) < 2)) continue;
+            spots.push(p); picked++;
+        }
+        for (const p of [...near, ...far]) {
             if (spots.length >= n) break;
             if (spots.some(s => Math.abs(s.x - p.x) + Math.abs(s.y - p.y) < 2)) continue;
             spots.push(p);
         }
         while (spots.length < n) {
-            const p = w.findWalkableNear(
-                Math.floor(this.rng.next() * w.size),
-                Math.floor(this.rng.next() * w.size)
-            );
-            spots.push(p);
+            spots.push(w.findWalkableNear(
+                hx + Math.floor((this.rng.next() - 0.5) * 80),
+                hy + Math.floor((this.rng.next() - 0.5) * 80)
+            ));
         }
         return spots;
     }
@@ -209,18 +230,59 @@ export class NPCSystem {
      * 推进一个刻（tick）
      * @param {Object} player 玩家对象（可为 null）
      */
+    /**
+     * 推进一个刻（tick）
+     *
+     * 256×256 地图上 NPC 数量可观，若每刻全量模拟会浪费大量算力在
+     * 玩家永远看不到的地方。所以按距离分层：
+     *   · 活跃区（曼哈顿距离 ≤ ACTIVE_RADIUS）：每刻全速决策
+     *   · 远景：每 12 刻才推演一次（仍在成长，只是节奏慢）
+     * 这样远方的世界依旧在演化，但不拖慢帧率。
+     */
     tick(player = null) {
         this.tickCount++;
         // 玩家每走一步 = 前进 10 分钟
         this.time.advance(10);
 
+        const px = player?.worldX;
+        const py = player?.worldY;
+        const hasPlayer = px !== undefined && py !== undefined;
+
         for (const npc of this.npcs.values()) {
             if (!npc.alive) continue;
+
+            if (hasPlayer) {
+                const dist = Math.abs(npc.x - px) + Math.abs(npc.y - py);
+                if (dist > ACTIVE_RADIUS) {
+                    // 远景：降频推演，且只做最廉价的成长（不移动、不战斗）
+                    if (this.tickCount % 12 !== 0) continue;
+                    this._remoteTick(npc);
+                    continue;
+                }
+            }
             this._think(npc, player);
         }
 
         // 每 12 刻（约 2 小时）结算一次门派大事
         if (this.tickCount % 12 === 0) this._sectTick();
+    }
+
+    /** 远景 NPC：只累积修为，不做移动与战斗（成本极低） */
+    _remoteTick(npc) {
+        const qi = this.world.qiAt(npc.x, npc.y);
+        const mul = this.time.cultivationMul(npc.karma);
+        npc.exp += Math.floor((6 + qi * 4) * mul) * 12;   // 一次补 12 刻的量
+        const need = 60 + npc.level * 25 + npc.realmIndex * 120;
+        while (npc.exp >= need) {
+            npc.exp -= need;
+            if (npc.level < 10) npc.level++;
+            else if (npc.realmIndex < 8) {
+                npc.realmIndex++; npc.level = 1;
+                npc.maxHp += 30; npc.hp = npc.maxHp;
+                npc.attack += 8; npc.defense += 4;
+            } else break;
+        }
+        if (npc.hp < npc.maxHp) npc.hp = Math.min(npc.maxHp, npc.hp + Math.floor(npc.maxHp * 0.05));
     }
 
     /** 单个 NPC 决策：打分 → 执行最高分 */
@@ -493,7 +555,7 @@ export class NPCSystem {
         let n = 0;
         for (let dy = -r; dy <= r; dy++) {
             for (let dx = -r; dx <= r; dx++) {
-                if (this.world.resources.has(`${x + dx},${y + dy}`)) n++;
+                if (this.world.hasResource(x + dx, y + dy)) n++;
             }
         }
         return n;

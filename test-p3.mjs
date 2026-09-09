@@ -225,7 +225,13 @@ console.log('\n【世界持久化：序列化往返】');
     const { world, time, npcs, inter } = makeWorld(888);
 
     // 制造变化：采集、建造、时间推进、NPC 交互
-    world.harvest(...[...world.resources.keys()][0].split(',').map(Number));
+    // 在已加载区块里找一处资源采掉
+    let harvestedOne = null;
+    for (let y = 0; y < world.size && !harvestedOne; y += 1) {
+        for (let x = 0; x < world.size && !harvestedOne; x += 1) {
+            if (world.resourceAt(x, y)) harvestedOne = world.harvest(x, y);
+        }
+    }
     let built = false;
     for (let y = 2; y < 46 && !built; y++) {
         for (let x = 2; x < 46 && !built; x++) {
@@ -240,7 +246,7 @@ console.log('\n【世界持久化：序列化往返】');
     npc.favor = 42;
     npc.addGrudge('player', 33);
 
-    const resCountBefore = world.resources.size;
+    const resCountBefore = world.harvested.size;
     const buildCountBefore = world.buildings.size;
     const npcCountBefore = npcs.npcs.size;
     const dayBefore = time.day;
@@ -265,7 +271,7 @@ console.log('\n【世界持久化：序列化往返】');
     t2.day = snap.time.day; t2.hour = snap.time.hour; t2.minute = snap.time.minute;
     n2.deserialize(snap.npc, w2, new RNG(889), t2);
 
-    check('资源数量一致', w2.resources.size === resCountBefore, `${w2.resources.size} vs ${resCountBefore}`);
+    check('已采集记录一致', w2.harvested.size === resCountBefore, `${w2.harvested.size} vs ${resCountBefore}`);
     check('建筑数量一致', w2.buildings.size === buildCountBefore, `${w2.buildings.size} vs ${buildCountBefore}`);
     check('NPC 数量一致', n2.npcs.size === npcCountBefore, `${n2.npcs.size} vs ${npcCountBefore}`);
     check('时间已恢复', t2.day === dayBefore, `${t2.day} vs ${dayBefore}`);

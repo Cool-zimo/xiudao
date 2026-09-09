@@ -64,11 +64,11 @@ const w = new World(new RNG(777));
 const rng = new RNG(777);
 const time = new TimeSystem(1, 6);
 const npcs = new NPCSystem(w, rng, time);
-npcs.populate({ npcCount: 24, sectCount: 3 });
+npcs.populate({ npcCount: 96, sectCount: 3 });
 
-check('生成 24 名 NPC', npcs.npcs.size === 24, `${npcs.npcs.size}`);
+check('生成 96 名 NPC', npcs.npcs.size === 96, `${npcs.npcs.size}`);
 check('生成 3 个门派', npcs.sects.size === 3, `${npcs.sects.size}`);
-check('全体初始存活', npcs.aliveNpcs().length === 24);
+check('全体初始存活', npcs.aliveNpcs().length === 96);
 
 const inBounds = [...npcs.npcs.values()].every(n => w.walkable(n.x, n.y));
 check('全部生成在可通行地块', inBounds);
@@ -95,10 +95,10 @@ for (let i = 0; i < 20; i++) npcs.tick(null);
 const after = list.map(n => ({ id: n.id, x: n.x, y: n.y, exp: n.exp }));
 
 const acted = after.filter((a, i) => a.exp !== before[i].exp).length;
-check('有 NPC 在修炼积累修为', acted > 0, `${acted}/24 修为有变化`);
+check('有 NPC 在修炼积累修为', acted > 0, `${acted}/96 修为有变化`);
 
 const moved = after.filter((a, i) => a.x !== before[i].x || a.y !== before[i].y).length;
-check('有 NPC 在移动', moved > 0, `${moved}/24 移动过`);
+check('有 NPC 在移动', moved > 0, `${moved}/96 移动过`);
 
 const actions = new Set([...npcs.npcs.values()].map(n => n.action));
 check('产生了多种行为', actions.size >= 2, [...actions].join(','));
@@ -129,6 +129,8 @@ check('门派实力发生变化', s0.some((v, i) => v !== s1[i]), `${s0} → ${s
 console.log('\n【恩怨记忆】');
 // 手动制造一次仇恨
 const a = list[0], b = list[1];
+// 先清空既有恩怨（前面的 tick 里已经结下其他梁子），确保测得准
+a.grudges.clear();
 a.addGrudge(b.id, 50);
 check('可记录仇恨', a.grudges.get(b.id) === 50);
 const foe = a.worstEnemy();
@@ -156,7 +158,7 @@ catch (e) { err = e.message; }
 check('玩家在场时 tick 不报错', !err, err || '');
 
 console.log('\n【死亡与统计】');
-const dead = 24 - npcs.aliveNpcs().length;
+const dead = 96 - npcs.aliveNpcs().length;
 check('存在伤亡（世界有冲突）', dead >= 0, `陨落 ${dead} 人`);
 const sum = npcs.summary();
 check('可生成世界概览', !!sum && typeof sum.alive === 'number');
@@ -169,7 +171,7 @@ check('编年史有上限（防内存膨胀）', npcs.chronicle.length <= 60, `$
 
 console.log('\n【序列一致性】');
 const npcs2 = new NPCSystem(new World(new RNG(777)), new RNG(777), new TimeSystem(1, 6));
-npcs2.populate({ npcCount: 24, sectCount: 3 });
+npcs2.populate({ npcCount: 96, sectCount: 3 });
 const names1 = [...npcs.npcs.values()].map(n => n.name).join(',');
 const names2 = [...npcs2.npcs.values()].map(n => n.name).join(',');
 check('同种子生成同一批 NPC', names1 === names2);

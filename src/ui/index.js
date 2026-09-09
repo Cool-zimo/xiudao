@@ -53,7 +53,7 @@ export class UI {
         // P2：时间流转 + NPC 与门派（让世界自己活起来）
         this.time = new TimeSystem(1, 6);
         this.npcSystem = new NPCSystem(this.world, new RNG(seed + 1), this.time);
-        this.npcSystem.populate({ npcCount: 24, sectCount: 3 });
+        this.npcSystem.populate({ npcCount: 96, sectCount: 3 });
 
         // P3：NPC 交互
         this.interaction = new InteractionSystem(this.npcSystem, new RNG(seed + 2), this.time);
@@ -268,6 +268,8 @@ export class UI {
         if (p) {
             p.worldX = this._spawn.x; p.worldY = this._spawn.y;
         }
+        // 预生成出生点周边区块，避免首次渲染时集中生成造成卡顿
+        this.world.ensureAround(this._spawn.x, this._spawn.y, 2);
         this.worldCanvas.setPlayer(this._spawn.x, this._spawn.y);
 
         // NPC 交互面板挂到面板区下方
