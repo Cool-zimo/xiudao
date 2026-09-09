@@ -239,6 +239,9 @@ export class UI {
             this._worldInited = true;
         }
 
+        // 销毁旧实例，避免渲染循环与定时器泄漏
+        if (this.worldCanvas) { this.worldCanvas.destroy(); this.worldCanvas = null; }
+
         this.worldCanvas = new WorldCanvas(this.dom.panel, this.world, {
             onTileInfo: (x, y, act) => this.handleWorldTile(x, y, act),
             onMove: (r) => this.handleWorldMove(r),

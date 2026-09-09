@@ -57,7 +57,11 @@ if (worldBtn) {
     check('含地图 canvas', html.includes('wc-canvas'));
     check('含灵气图开关', html.includes('灵气图'));
     check('含图例', html.includes('wc-legend'));
-    check('含操作提示', html.includes('WASD'));
+    check('含触控方向键', html.includes('wc-dpad'));
+    const dirs = nodes['panel-container'].querySelectorAll('.wc-dir');
+    check('方向键有 4 个', dirs.length === 4, `${dirs.length} 个`);
+    check('含采集按钮（替代空格）', html.includes('data-act="harvest"'));
+    check('含寻路提示', html.includes('自动寻路'));
 
     const legend = nodes['panel-container'].querySelectorAll('.wc-lg');
     check('图例列出全部 7 种地形', legend.length === 7, `${legend.length} 条`);
@@ -71,6 +75,9 @@ if (worldBtn) {
 
     const chron = nodes['panel-container'].querySelector('#wc-chronicle');
     check('编年史面板存在', !!chron);
+    // 面板默认收起，点开后才渲染内容（这也是真实使用路径）
+    const chronBtn = nodes['panel-container'].querySelector('[data-act="chronicle"]');
+    chronBtn?.click();
     const sumEl = nodes['panel-container'].querySelector('#wcc-summary');
     check('编年史含世界概览', /在世 \d+ 人/.test(sumEl?.textContent || ''), sumEl?.textContent);
     check('概览含 3 个门派', (sumEl?.textContent || '').split('·').length >= 3, sumEl?.textContent);
