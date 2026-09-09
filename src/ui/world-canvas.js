@@ -59,6 +59,13 @@ export class WorldCanvas {
         this._raf = null;
         this._lastFrame = 0;
 
+        /** P3：御剑飞行 */
+        this.flying = false;
+        this.flyCost = 2;           // 每步灵力消耗
+        this.onNpcClick = opts.onNpcClick || (() => { });
+        this.onFlyChange = opts.onFlyChange || (() => { });
+        this.getPlayer = opts.getPlayer || (() => null);
+
         this._build();
         this._startLoop();
     }
@@ -73,6 +80,7 @@ export class WorldCanvas {
                     <button class="wc-btn" data-act="qi">🌫️ 灵气图</button>
                     <button class="wc-btn" data-act="legend">🗺️ 图例</button>
                     <button class="wc-btn" data-act="chronicle">📜 天下事</button>
+                    <button class="wc-btn" data-act="fly" id="wc-fly" title="消耗灵力快速移动，可跨越云海">🗡️ 御剑</button>
                     <span class="wc-time" id="wc-time">—</span>
                     <span class="wc-pos" id="wc-pos">—</span>
                 </div>
@@ -138,6 +146,9 @@ export class WorldCanvas {
         });
         this.container.querySelector('[data-act="center"]')?.addEventListener('click', () => {
             this._clampCam(true);
+        });
+        this.container.querySelector('[data-act="fly"]')?.addEventListener('click', () => {
+            this.toggleFly();
         });
 
         this._bindInput();
@@ -241,10 +252,18 @@ export class WorldCanvas {
             btn.addEventListener('contextmenu', e => e.preventDefault());
         });
 
-        // 点击地图 → 自动寻路
+        // 点击地图 → 优先交互 NPC，其次自动寻路
         this.canvas?.addEventListener('click', (e) => {
             const p = this._screenToWorld(e.clientX, e.clientY);
             if (!p) return;
+
+            // 点中 NPC（或 NPC 就在旁边）→ 打开交互
+            const npc = this.npcAt(p.x, p.y);
+            if (npc) {
+                const dist = Math.abs(npc.x - this.player.x) + Math.abs(npc.y - this.player.y);
+                if (dist <= 1) { this.onNpcClick(npc); return; }
+            }
+
             this._path = this.findPath(this.player.x, this.player.y, p.x, p.y);
             if (!this._path) this.onTileInfo(p.x, p.y, 'inspect');
         });
@@ -287,6 +306,47 @@ export class WorldCanvas {
         if (this._moveTimer) { clearInterval(this._moveTimer); this._moveTimer = null; }
     }
 
+    // ---------- 御剑飞行 ----------
+
+    /** 切换飞行状态；条件不足时返回失败原因 */
+    toggleFly() {
+        const p = this.getPlayer();
+        if (this.flying) {
+            this.flying = false;
+            this._syncFlyBtn();
+            this.onFlyChange(false);
+            return { ok: true, flying: false };
+        }
+
+        const c = p?.cultivation;
+        if ((c?.realmIndex ?? 0) < 1) {
+            return { ok: false, reason: '需筑基期方可御剑飞行' };
+        }
+        const mp = p?.attributes?.mp ?? 0;
+        if (mp < this.flyCost * 3) {
+            return { ok: false, reason: '灵力不足，无法御剑' };
+        }
+
+        this.flying = true;
+        this._syncFlyBtn();
+        this.onFlyChange(true);
+        return { ok: true, flying: true };
+    }
+
+    _syncFlyBtn() {
+        const b = this.container.querySelector('#wc-fly');
+        if (b) {
+            b.classList.toggle('on', this.flying);
+            b.textContent = this.flying ? '🗡️ 落地' : '🗡️ 御剑';
+        }
+    }
+
+    /** 该格是否可进入（飞行时可跨越云海） */
+    _canEnter(x, y) {
+        if (!this.world.inBounds(x, y)) return false;
+        return this.flying ? true : this.world.walkable(x, y);
+    }
+
     // ---------- 移动 ----------
 
     move(dx, dy) {
@@ -294,7 +354,22 @@ export class WorldCanvas {
         const ny = this.player.y + dy;
         this.facing = { x: dx, y: dy };
 
-        if (!this.world.walkable(nx, ny)) {
+        // 飞行时消耗灵力
+        if (this.flying) {
+            const p = this.getPlayer();
+            const mp = p?.attributes?.mp ?? 0;
+            if (mp < this.flyCost) {
+                this.flying = false;
+                this._syncFlyBtn();
+                this.onFlyChange(false, '灵力耗尽，已落地');
+                const why = '灵力耗尽，已落地';
+                this.onMove({ ok: false, reason: why });
+                return { ok: false, reason: why };
+            }
+            p.attributes.mp = mp - this.flyCost;
+        }
+
+        if (!this._canEnter(nx, ny)) {
             const why = this.world.get(nx, ny) === 'cloud' ? '前方是云海，无法涉足' : '此路不通';
             this.onMove({ ok: false, reason: why });
             return { ok: false, reason: why };
@@ -304,7 +379,12 @@ export class WorldCanvas {
         this.player.y = ny;
         this._clampCam();
 
-        const res = { ok: true, x: nx, y: ny, tile: this.world.get(nx, ny), qi: this.world.qiAt(nx, ny) };
+        const res = {
+            ok: true, x: nx, y: ny,
+            tile: this.world.get(nx, ny),
+            qi: this.world.qiAt(nx, ny),
+            flying: this.flying
+        };
         this.onMove(res);
         return res;
     }
@@ -324,10 +404,19 @@ export class WorldCanvas {
         if (snap) { this.camX = this.camTX; this.camY = this.camTY; }
     }
 
+    /** 该格上的存活 NPC */
+    npcAt(x, y) {
+        if (!this.npcSystem) return null;
+        for (const n of this.npcSystem.npcs.values()) {
+            if (n.alive && n.x === x && n.y === y) return n;
+        }
+        return null;
+    }
+
     /** BFS 寻路：返回不含起点的格子数组，不可达返回 null */
     findPath(sx, sy, tx, ty) {
         if (sx === tx && sy === ty) return [];
-        if (!this.world.walkable(tx, ty)) return null;
+        if (!this._canEnter(tx, ty)) return null;
 
         const key = (x, y) => `${x},${y}`;
         const prev = new Map();
@@ -353,7 +442,7 @@ export class WorldCanvas {
             for (const [dx, dy] of DIRS) {
                 const nx = cx + dx, ny = cy + dy;
                 const nk = key(nx, ny);
-                if (seen.has(nk) || !this.world.walkable(nx, ny)) continue;
+                if (seen.has(nk) || !this._canEnter(nx, ny)) continue;
                 seen.add(nk);
                 prev.set(nk, key(cx, cy));
                 q.push([nx, ny]);
@@ -544,6 +633,29 @@ export class WorldCanvas {
         const px = sx(this.player.rx) + t / 2;
         const py = sy(this.player.ry) + t / 2;
         const pulse = 0.5 + Math.sin(Date.now() / 400) * 0.5;
+
+        // 御剑飞行：脚下剑光 + 拖影
+        if (this.flying) {
+            const ang = Math.atan2(this.facing.y, this.facing.x);
+            ctx.save();
+            ctx.translate(px, py);
+            ctx.rotate(ang);
+            ctx.fillStyle = 'rgba(125,211,252,.85)';
+            ctx.beginPath();
+            ctx.moveTo(t * 0.42, 0);
+            ctx.lineTo(-t * 0.18, -t * 0.07);
+            ctx.lineTo(-t * 0.10, 0);
+            ctx.lineTo(-t * 0.18, t * 0.07);
+            ctx.closePath();
+            ctx.fill();
+            ctx.restore();
+
+            ctx.strokeStyle = 'rgba(125,211,252,.35)';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.arc(px, py, t * 0.34 + pulse * 3, 0, Math.PI * 2);
+            ctx.stroke();
+        }
 
         const g = ctx.createRadialGradient(px, py, 2, px, py, t * 0.55);
         if (g) {

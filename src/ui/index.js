@@ -7,9 +7,11 @@ import { bus, EV } from '../core/event-bus.js';
 import { GameState } from '../core/store.js';
 import { RNG } from '../core/rng.js';
 import { SCENES, preloadArt } from './art.js';
+import { NPCPanel } from './npc-panel.js';
 import { World } from '../systems/world.js';
 import { TimeSystem } from '../systems/time.js';
 import { NPCSystem } from '../systems/npc.js';
+import { InteractionSystem } from '../systems/interaction.js';
 import { RES_DEFS, tileDef } from '../data/terrain.js';
 
 /**
@@ -52,6 +54,11 @@ export class UI {
         this.time = new TimeSystem(1, 6);
         this.npcSystem = new NPCSystem(this.world, new RNG(seed + 1), this.time);
         this.npcSystem.populate({ npcCount: 24, sectCount: 3 });
+
+        // P3：NPC 交互
+        this.interaction = new InteractionSystem(this.npcSystem, new RNG(seed + 2), this.time);
+        this.npcPanel = null;
+        this.worldSeed = seed;
 
         this.worldCanvas = null;
 
@@ -245,14 +252,81 @@ export class UI {
         this.worldCanvas = new WorldCanvas(this.dom.panel, this.world, {
             onTileInfo: (x, y, act) => this.handleWorldTile(x, y, act),
             onMove: (r) => this.handleWorldMove(r),
+            onNpcClick: (npc) => this.openNPCPanel(npc),
+            onFlyChange: (on, why) => {
+                if (on) this.log('🗡️ 御剑而起，踏空而行', 'info');
+                else this.log(`🗡️ ${why || '收剑落地'}`, 'normal');
+                this.hud.render();
+            },
+            getPlayer: () => this.game.state.player,
             npcSystem: this.npcSystem,
             time: this.time
         });
         this.worldCanvas.playerKarma = this.game.state.player?.karma ?? 0;
         // 玩家在世界中的坐标（NPC 寻仇用）
         const p = this.game.state.player;
-        if (p) { p.worldX = this._spawn.x; p.worldY = this._spawn.y; }
+        if (p) {
+            p.worldX = this._spawn.x; p.worldY = this._spawn.y;
+        }
         this.worldCanvas.setPlayer(this._spawn.x, this._spawn.y);
+
+        // NPC 交互面板挂到面板区下方
+        this._npcHost = this._npcHost || (() => {
+            const d = document.createElement('div');
+            d.className = 'npc-host';
+            return d;
+        })();
+        if (!this._npcHost.isConnected) this.dom.panel.appendChild(this._npcHost);
+        this.npcPanel = new NPCPanel(this._npcHost, {
+            game: this.game,
+            interaction: this.interaction,
+            npcSystem: this.npcSystem,
+            onLog: (t, k) => this.log(t, k),
+            onChange: () => { this.hud.render(); this.worldCanvas.render(); this.onWorldChange?.(); }
+        });
+    }
+
+    /** 打开 NPC 交互 */
+    openNPCPanel(npc) {
+        this.npcPanel?.open(npc, this.game.state.player);
+        this._npcHost?.scrollIntoView?.({ behavior: 'smooth', block: 'nearest' });
+    }
+
+    // ---------- 世界存档 ----------
+
+    /** 导出世界状态（合并进存档） */
+    exportWorld() {
+        const p = this.game.state.player;
+        return {
+            seed: this.worldSeed,
+            pos: p ? { x: p.worldX ?? this._spawn?.x, y: p.worldY ?? this._spawn?.y } : null,
+            time: this.time.toJSON(),
+            world: this.world.serialize(),
+            npc: this.npcSystem.serialize()
+        };
+    }
+
+    /** 导入世界状态（读档后恢复） */
+    importWorld(data) {
+        if (!data) return false;
+        try {
+            // 地形靠种子重建，再叠加采集/建造的变化
+            this.worldSeed = data.seed ?? this.worldSeed;
+            this.world.deserialize(data.world);
+            this.time = TimeSystem.from(data.time);
+            this.npcSystem.deserialize(data.npc, this.world, new RNG(this.worldSeed + 1), this.time);
+            this.interaction = new InteractionSystem(
+                this.npcSystem, new RNG(this.worldSeed + 2), this.time);
+
+            if (data.pos) {
+                this._spawn = data.pos;
+                this._worldInited = true;
+            }
+            return true;
+        } catch (e) {
+            console.warn('[世界] 恢复失败，保留新世界:', e.message);
+            return false;
+        }
     }
 
     /** 移动一格：推进世界时间 + NPC 行动 + 妖兽遭遇 */

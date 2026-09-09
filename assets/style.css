@@ -445,6 +445,114 @@ button.ghost:hover { color: var(--text); border-color: var(--accent-2); }
     width: 100%; max-width: var(--tw, 720px);
 }
 
+/* 御剑飞行按钮激活态 */
+.wc-btn.on {
+    background: rgba(125,211,252,.2); color: #7dd3fc;
+    border-color: rgba(125,211,252,.55);
+}
+
+/* ============ NPC 交互面板 ============ */
+.npc-host { margin-top: 14px; width: 100%; max-width: var(--tw, 720px); }
+
+.npc-panel {
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: 12px; padding: 14px 16px;
+    box-shadow: 0 8px 28px rgba(0,0,0,.3);
+}
+
+.npc-head { display: flex; align-items: flex-start; gap: 12px; margin-bottom: 12px; }
+
+.npc-avatar {
+    width: 46px; height: 46px; border-radius: 10px; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 21px; font-weight: 600; color: #0f172a;
+    background: var(--c, #94a3b8);
+    border: 1px solid rgba(255,255,255,.18);
+}
+.npc-meta { flex: 1; min-width: 0; }
+.npc-name { font-size: 15.5px; font-weight: 600; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.npc-att { font-size: 12px; font-weight: 500; padding: 1px 8px; border-radius: 9px; background: rgba(255,255,255,.06); }
+.npc-sub { font-size: 12px; color: var(--text-dim); margin-top: 3px; }
+
+.npc-bars { display: flex; gap: 14px; margin-top: 8px; flex-wrap: wrap; }
+.npc-bar { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--text-dim); }
+.npc-bar span { min-width: 26px; }
+.npc-bar i {
+    display: block; width: 78px; height: 5px; border-radius: 3px;
+    background: rgba(255,255,255,.08); overflow: hidden;
+}
+.npc-bar i b { display: block; height: 100%; background: #f87171; transition: width .3s; }
+.npc-bar i.fav b { background: #4ade80; }
+.npc-bar em { font-style: normal; min-width: 26px; text-align: right; }
+
+.npc-close {
+    background: transparent; border: none; color: var(--text-dim);
+    font-size: 22px; cursor: pointer; line-height: 1; padding: 0 4px; flex-shrink: 0;
+}
+.npc-close:hover { color: var(--text); }
+
+.npc-say {
+    padding: 10px 13px; margin-bottom: 12px;
+    background: var(--bg); border-left: 2px solid var(--accent-2);
+    border-radius: 0 8px 8px 0;
+    font-size: 13px; line-height: 1.75; color: var(--text);
+}
+
+.npc-acts { display: flex; flex-wrap: wrap; gap: 8px; }
+.npc-act {
+    padding: 9px 17px; font-size: 13px;
+    background: var(--bg); color: var(--text-dim);
+    border: 1px solid var(--border); border-radius: 9px; cursor: pointer;
+    touch-action: manipulation; -webkit-tap-highlight-color: transparent;
+}
+.npc-act:hover:not(:disabled) { color: var(--text); border-color: var(--accent-2); }
+.npc-act:active:not(:disabled) { transform: scale(.96); }
+.npc-act:disabled { opacity: .35; cursor: not-allowed; }
+.npc-act.danger:hover { color: #fca5a5; border-color: var(--danger); background: rgba(239,68,68,.1); }
+.npc-act.join { color: var(--gold); border-color: rgba(251,191,36,.4); }
+.npc-act.join:hover { background: rgba(251,191,36,.12); }
+
+.npc-tip {
+    margin-top: 11px; padding-top: 10px;
+    border-top: 1px dashed var(--border);
+    font-size: 11.5px; color: var(--text-dim);
+}
+
+.npc-back {
+    margin-top: 12px; width: 100%; padding: 9px;
+    background: transparent; color: var(--text-dim);
+    border: 1px dashed var(--border); border-radius: 8px;
+    font-size: 12.5px; cursor: pointer;
+}
+.npc-back:hover { color: var(--text); }
+
+/* 交易 */
+.npc-trade-head {
+    display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+    font-size: 13px; margin-bottom: 10px;
+}
+.npc-off { color: var(--accent); font-size: 11.5px; }
+.npc-gold { margin-left: auto; font-size: 12px; color: var(--gold); }
+
+.npc-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 9px 11px; margin-bottom: 7px;
+    background: var(--bg); border: 1px solid var(--border); border-radius: 8px;
+}
+.ni-name { font-size: 13px; font-weight: 600; min-width: 88px; }
+.ni-name span { color: var(--text-dim); font-weight: 400; font-size: 11.5px; }
+.ni-desc { flex: 1; font-size: 11.5px; color: var(--text-dim); }
+.ni-buy {
+    padding: 6px 13px; font-size: 12px;
+    background: var(--accent); color: #052e26;
+    border: none; border-radius: 7px; cursor: pointer; flex-shrink: 0;
+}
+.ni-buy:disabled { opacity: .35; cursor: not-allowed; background: var(--border); color: var(--text-dim); }
+
+.npc-gift { display: flex; flex-direction: column; gap: 8px; }
+.npc-gift .npc-act { width: 100%; text-align: left; }
+.npc-empty { padding: 18px; text-align: center; color: var(--text-dim); font-size: 12.5px; }
+
 /* 小屏：加大触控目标 */
 @media (max-width: 560px) {
     .wc-dpad { grid-template-columns: repeat(3, 60px); grid-template-rows: repeat(3, 60px); }

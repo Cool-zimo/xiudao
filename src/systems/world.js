@@ -267,6 +267,30 @@ export class World {
         return { x: 24, y: 10 };   // 兜底：山门中心
     }
 
+    // ---------- 存档 ----------
+
+    /**
+     * 序列化：只存"变化量"，地形靠种子重建
+     * （48×48 的 tiles 数组全存会浪费几 KB，且完全可由种子复现）
+     */
+    serialize() {
+        return {
+            resources: [...this.resources.entries()].map(([k, v]) => [k, v.type, v.amount]),
+            buildings: [...this.buildings.entries()].map(([k, v]) => [k, v.type, v.builtAt])
+        };
+    }
+
+    /** 反序列化：叠加到按种子重建的世界上 */
+    deserialize(data) {
+        if (!data) return;
+        this.resources = new Map(
+            (data.resources || []).map(([k, type, amount]) => [k, { type, amount }])
+        );
+        this.buildings = new Map(
+            (data.buildings || []).map(([k, type, builtAt]) => [k, { type, builtAt }])
+        );
+    }
+
     /** 统计信息（UI 展示） */
     stats() {
         const counts = {};

@@ -145,6 +145,18 @@ function doCreate(char) {
 // ============ 4. 主界面 ============
 function enterMain(welcomeMsg) {
     ui = new UI(game, dom);
+    globalThis.__ui = ui;   // 供自动化测试与控制台调试
+
+    // 恢复世界状态（需在 UI 构造后、渲染前）
+    if (currentSave?.world && ui.importWorld) {
+        const ok = ui.importWorld(currentSave.world);
+        if (ok) {
+            ui.log('🌏 天下依旧，山河如故', 'info');
+        }
+    }
+    // 世界变化 → 自动存一次（避免采集/建造后立刻退出丢失）
+    ui.onWorldChange = () => syncNow(true);
+
     show('main');
     if (welcomeMsg) ui.log(welcomeMsg, 'levelup');
     if (githubSave.isLoggedIn) {
@@ -162,6 +174,8 @@ async function syncNow(silent = false) {
     if (!game.state.player) return;
     const data = game.toSave();
     if (!data) return;
+    // 合并开放世界状态（地形靠种子重建，这里只存变化量）
+    if (ui?.exportWorld) data.world = ui.exportWorld();
     currentSave = data;
 
     const r = await githubSave.save(data, { backup: true });

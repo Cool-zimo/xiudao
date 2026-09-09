@@ -52,6 +52,18 @@ export class NPC {
         this.actionTurns = 0;
         this.moveTo = null;
         this.lastThought = '';
+
+        /** 对玩家的好感（-100 ~ 100），影响交互选项与态度 */
+        this.favor = opts.favor ?? 0;
+    }
+
+    /** 好感对应的态度描述 */
+    get attitude() {
+        if (this.favor >= 60) return { key: 'devoted', name: '敬重', color: '#4ade80' };
+        if (this.favor >= 25) return { key: 'friendly', name: '友善', color: '#86efac' };
+        if (this.favor >= -10) return { key: 'neutral', name: '平淡', color: '#94a3b8' };
+        if (this.favor >= -45) return { key: 'hostile', name: '戒备', color: '#fbbf24' };
+        return { key: 'hateful', name: '仇视', color: '#f87171' };
     }
 
     get power() {
@@ -581,6 +593,73 @@ export class NPCSystem {
     _log(text) {
         this.chronicle.unshift({ text, at: this.time.display(), tick: this.tickCount });
         if (this.chronicle.length > 60) this.chronicle.pop();
+    }
+
+    // ---------- 存档 ----------
+
+    serialize() {
+        return {
+            tick: this.tickCount,
+            npcs: [...this.npcs.values()].map(n => ({
+                i: n.id, n: n.name, k: n.kind, x: n.x, y: n.y,
+                hx: n.homeX, hy: n.homeY,
+                ri: n.realmIndex, lv: n.level, exp: n.exp,
+                hp: n.hp, mhp: n.maxHp, at: n.attack, df: n.defense,
+                km: Math.round(n.karma * 10) / 10, gd: n.gold,
+                sid: n.sectId, a: n.alive ? 1 : 0,
+                gr: [...n.grudges], db: [...n.debt],
+                fav: n.favor ?? 0
+            })),
+            sects: [...this.sects.values()].map(s => ({
+                i: s.id, n: s.name, c: s.color,
+                st: Math.round(s.strength),
+                m: [...s.members], e: [...s.enemies],
+                d: s.doctrine
+            })),
+            chronicle: this.chronicle.slice(0, 30)
+        };
+    }
+
+    deserialize(data, world, rng, time) {
+        if (!data) return;
+        this.world = world;
+        this.rng = rng;
+        this.time = time;
+        this.tickCount = data.tick || 0;
+
+        this.npcs = new Map();
+        for (const d of (data.npcs || [])) {
+            const n = new NPC({
+                name: d.n, kind: d.k, x: d.x, y: d.y, sectId: d.sid,
+                realmIndex: d.ri, level: d.lv,
+                hp: d.hp, maxHp: d.mhp,
+                attack: d.at, defense: d.df,
+                karma: d.km, gold: d.gd
+            });
+            n.id = d.i;
+            n.homeX = d.hx; n.homeY = d.hy;
+            n.exp = d.exp || 0;
+            n.alive = d.a === 1;
+            n.grudges = new Map(d.gr || []);
+            n.debt = new Map(d.db || []);
+            n.favor = d.fav || 0;
+            this.npcs.set(n.id, n);
+        }
+        // 保证新生成的 NPC id 不与存档冲突
+        _uid = Math.max(1, ...this.npcs.keys()) + 1;
+
+        this.sects = new Map();
+        for (const s of (data.sects || [])) {
+            const sect = new Sect(s.i, s.n, { color: s.c, strength: s.st, doctrine: s.d });
+            sect.members = new Set(s.m || []);
+            sect.enemies = new Set(s.e || []);
+            this.sects.set(sect.id, sect);
+        }
+
+        this.chronicle = data.chronicle || [];
+
+        // 重建占位信息，避免 NPC 重叠
+        world.occupied = world.occupied || new Set();
     }
 
     // ---------- 查询 ----------

@@ -82,7 +82,40 @@ if (worldBtn) {
     check('编年史含世界概览', /在世 \d+ 人/.test(sumEl?.textContent || ''), sumEl?.textContent);
     check('概览含 3 个门派', (sumEl?.textContent || '').split('·').length >= 3, sumEl?.textContent);
 
-    console.log('\n【地图状态】');
+    console.log('\n【P3：御剑飞行】');
+const flyBtn = nodes['panel-container'].querySelector('#wc-fly');
+check('工具栏含御剑按钮', !!flyBtn, '未找到 #wc-fly');
+if (flyBtn) {
+    // 练气期（realmIndex 0）应被拒绝
+    const r0 = globalThis.__ui?.worldCanvas?.toggleFly?.();
+    check('练气期无法御剑（或已筑基）', r0 === undefined || r0.ok === true || /筑基/.test(r0.reason || ''),
+        JSON.stringify(r0));
+}
+
+console.log('\n【P3：NPC 交互面板】');
+// 直接把玩家挪到某个 NPC 旁边再点开
+const anyNpc = [...(globalThis.__ui?.npcSystem?.npcs?.values() || [])].find(n => n.alive);
+check('世界中存活 NPC 可获取', !!anyNpc);
+const wcRef = globalThis.__ui;
+if (anyNpc && wcRef) {
+    wcRef.openNPCPanel(anyNpc);
+    const host = nodes['panel-container'].querySelector?.('.npc-host');
+    const nh = wcRef._npcHost;
+    const html2 = nh?.innerHTML || '';
+    check('交互面板已渲染', html2.includes('npc-panel'), html2.slice(0, 50));
+    check('显示 NPC 姓名', html2.includes(anyNpc.name));
+    check('显示好感条', html2.includes('好感'));
+    check('显示心魔条', html2.includes('心魔'));
+    const acts = [...(html2.matchAll(/data-act="(\w+)"/g))].map(m => m[1]);
+    check('含交谈选项', acts.includes('talk'), acts.join(','));
+    check('含交易选项', acts.includes('trade'));
+    check('含切磋选项', acts.includes('spar'));
+    check('含赠礼选项', acts.includes('gift'));
+    check('含袭击选项', acts.includes('attack'));
+    check('显示态度提示', html2.includes('npc-tip'));
+}
+
+console.log('\n【地图状态】');
     const posText = nodes['panel-container'].querySelector('#wc-pos')?.textContent || '';
     check('位置信息已显示', posText.includes('灵气') && posText.includes('('), posText);
     check('出生在山门', posText.includes('山门'), posText);
